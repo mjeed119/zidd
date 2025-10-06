@@ -61,6 +61,9 @@
     const studentsTbody = () => document.getElementById("studentsBody");
     const totalSpan   = () => document.getElementById("calcTotal");
 
+    // (اختياري) إن كنت تستخدم تصدير CSV لاحقًا
+    let _lastLoaded = [];
+
     // Auth state
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -165,7 +168,7 @@
       }catch(e){ console.error(e); alert("تعذر التحديث"); }
     };
 
-    // Load students
+    // ========= NEW: ترتيب هجائي عربي مستقر =========
     async function loadStudents() {
       const klassFilter = document.getElementById("filterClass").value.trim();
       studentsTbody().innerHTML = "<tr><td colspan='13' class='muted'>...جاري التحميل</td></tr>";
@@ -173,51 +176,88 @@
         let qRef = collection(db,"students");
         let qy = klassFilter ? query(qRef, where("Class","==",klassFilter)) : query(qRef);
         const qs = await getDocs(qy);
-        const rows = [];
+
+        // نجمع النتائج في مصفوفة موحدة
+        const arr = [];
         qs.forEach(d=>{
-          const s = d.data();
-          rows.push(`
-            <tr>
-              <td class="pill">${d.id}</td>
-              <td>${s.Name||""}</td>
-              <td>${s.Class||""}</td>
-              <td>${num(s.Hw)}</td>
-              <td>${num(s.Classwork)}</td>
-              <td>${num(s.Activity)}</td>
-              <td>${num(s.Research)}</td>
-              <td>${num(s.Theoretical)}</td>
-              <td>${num(s.Practical)}</td>
-              <td>${num(s.Absence)}</td>
-              <td><strong>${num(s.Total)}</strong></td>
-              <td>${s.Notes||""}</td>
-              <td class="tools">
-                <button class="mini ghost" onclick="bump('${d.id}','Hw',1)">+ واجب</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Hw',-1)">- واجب</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Classwork',1)">+ صفي</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Classwork',-1)">- صفي</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Activity',1)">+ نشاط</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Activity',-1)">- نشاط</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Research',1)">+ بحث</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Research',-1)">- بحث</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Theoretical',1)">+ نظري</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Theoretical',-1)">- نظري</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Practical',1)">+ عملي</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Practical',-1)">- عملي</button>
-
-                <button class="mini ghost" onclick="bump('${d.id}','Absence',1)">+ غياب</button>
-                <button class="mini ghost" onclick="bump('${d.id}','Absence',-1)">- غياب</button>
-
-                <button class="mini danger" onclick="deleteStudent('${d.id}')">حذف</button>
-              </td>
-            </tr>
-          `);
+          const s = d.data() || {};
+          arr.push({
+            id: d.id,
+            Name: s.Name || "",
+            Class: s.Class || "",
+            Hw: Number(s.Hw || 0),
+            Classwork: Number(s.Classwork || 0),
+            Activity: Number(s.Activity || 0),
+            Research: Number(s.Research || 0),
+            Theoretical: Number(s.Theoretical || 0),
+            Practical: Number(s.Practical || 0),
+            Absence: Number(s.Absence || 0),
+            Total: Number(s.Total || 0),
+            Notes: s.Notes || ""
+          });
         });
-        studentsTbody().innerHTML = rows.length? rows.join("") : `<tr><td colspan="13" class="muted">لا يوجد طلاب</td></tr>`;
+
+        // ✅ ترتيب أبجدي عربي: بدون فلتر ← (الفصل ثم الاسم) | مع الفلتر ← (الاسم فقط)
+        const coll = new Intl.Collator('ar');
+        if (!klassFilter) {
+          arr.sort((a,b)=>{
+            const c = coll.compare(String(a.Class), String(b.Class));
+            return c !== 0 ? c : coll.compare(a.Name, b.Name);
+          });
+        } else {
+          arr.sort((a,b)=> coll.compare(a.Name, b.Name));
+        }
+
+        // (اختياري) حفظ نسخة للتصدير إن كنت تستخدم exportCSV
+        _lastLoaded = arr.map(s => ({
+          ID: s.id, Name: s.Name, Class: s.Class, Hw: s.Hw, Classwork: s.Classwork,
+          Activity: s.Activity, Research: s.Research, Theoretical: s.Theoretical,
+          Practical: s.Practical, Absence: s.Absence, Total: s.Total, Notes: s.Notes
+        }));
+
+        // بناء الصفوف
+        const rows = arr.map(s => `
+          <tr>
+            <td class="pill">${s.id}</td>
+            <td>${s.Name}</td>
+            <td>${s.Class}</td>
+            <td>${s.Hw}</td>
+            <td>${s.Classwork}</td>
+            <td>${s.Activity}</td>
+            <td>${s.Research}</td>
+            <td>${s.Theoretical}</td>
+            <td>${s.Practical}</td>
+            <td>${s.Absence}</td>
+            <td><strong>${s.Total}</strong></td>
+            <td>${s.Notes}</td>
+            <td class="tools">
+              <button class="mini ghost" onclick="bump('${s.id}','Hw',1)">+ واجب</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Research',1)">+ بحث</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Practical',1)">+ عملي</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
+
+              <button class="mini ghost" onclick="bump('${s.id}','Absence',1)">+ غياب</button>
+              <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
+
+              <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
+            </td>
+          </tr>
+        `);
+
+        studentsTbody().innerHTML = rows.length ? rows.join("") : `<tr><td colspan="13" class="muted">لا يوجد طلاب</td></tr>`;
       }catch(e){
         console.error(e);
         studentsTbody().innerHTML = `<tr><td colspan="13" class="muted">تعذر التحميل</td></tr>`;
@@ -292,11 +332,11 @@
           <input id="st_hw" type="number" placeholder="الواجبات Hw" />
           <input id="st_classwork" type="number" placeholder="النشاط الصفي Classwork" />
           <input id="st_activity" type="number" placeholder="نشاط إضافي Activity" />
-          <input id="st_research" type="number" placeholder="البحث (من 5)" />          <!-- جديد -->
+          <input id="st_research" type="number" placeholder="البحث (من 5)" />
         </div>
         <div class="row">
-          <input id="st_theoretical" type="number" placeholder="الاختبار النظري" />    <!-- جديد -->
-          <input id="st_practical"   type="number" placeholder="الاختبار العملي" />    <!-- جديد -->
+          <input id="st_theoretical" type="number" placeholder="الاختبار النظري" />
+          <input id="st_practical"   type="number" placeholder="الاختبار العملي" />
           <input id="st_absence" type="number" placeholder="الغياب Absence (لا يدخل في المجموع)" />
           <input id="st_notes" placeholder="ملاحظات" />
         </div>
