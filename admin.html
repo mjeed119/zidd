@@ -1,59 +1,309 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>لوحة تحكم المشرف</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لوحة المشرف</title>
   <style>
-    body { font-family: sans-serif; direction: rtl; text-align: center; background: #f0f2f5; }
-    .box { background: white; width: 300px; margin: 100px auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    input { width: 90%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #0056b3; }
+    :root { --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1; --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; }
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
+    body{margin:0;background:var(--bg);color:var(--ink)}
+    header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    header h1{font-size:18px;margin:0}
+    header .right{display:flex;gap:8px;align-items:center}
+    main{max-width:1100px;margin:26px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
+    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+    input,select,button{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    input::placeholder{color:#6d85aa}
+    button{cursor:pointer}
+    .primary{background:var(--accent);border-color:#3f70cc}
+    .danger{background:var(--danger);border-color:#d94d4d}
+    .ghost{background:#0f1a2d}
+    .ok{background:var(--ok);border-color:#22b063}
+    .muted{color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px;border-bottom:1px solid #1a2945;text-align:center}
+    th{color:#b9cae6;background:#0f192c}
+    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457}
+    .hide{display:none}
+    a.link{color:#8fb6ff;text-decoration:none}
+    .mini{padding:6px 10px;border-radius:8px}
   </style>
-</head>
-<body>
-  <div class="box">
-    <h2>تسجيل دخول المشرف</h2>
-    <input type="email" id="email" placeholder="البريد الإلكتروني" />
-    <input type="password" id="password" placeholder="كلمة المرور" />
-    <button onclick="login()">تسجيل الدخول</button>
-    <p id="msg"></p>
-  </div>
 
-  <script>
-    // إعدادات Firebase الخاصة بك 🔥
+  <!-- Firebase v12 (Modules) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    // 🔧 ضع إعدادات مشروعك (كما هي عندك)
     const firebaseConfig = {
-      apiKey: "AIzaSyBBx_pv6FEzGw7OyDHNj6u6D9y0Q_Ib5b",
+      apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
       projectId: "students-portal-9eda8",
-      storageBucket: "students-portal-9eda8.appspot.com",
+      storageBucket: "students-portal-9eda8.firebasestorage.app",
       messagingSenderId: "279588301357",
       appId: "1:279588301357:web:37f0ad440810aed4a166a4",
       measurementId: "G-7FW8J3J4GN"
     };
 
-    // تشغيل Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    // Init
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
 
-    function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((user) => {
-          document.getElementById("msg").innerText = "✅ تم تسجيل الدخول بنجاح";
-          setTimeout(() => {
-            window.location.href = "dashboard.html";
-          }, 1000);
-        })
-        .catch((error) => {
-          document.getElementById("msg").innerText = "❌ خطأ في البريد أو كلمة المرور";
-          console.error(error);
+    // UI Elements
+    const loginView   = () => document.getElementById("loginView");
+    const panelView   = () => document.getElementById("panelView");
+    const loginMsg    = () => document.getElementById("loginMsg");
+    const studentsTbody = () => document.getElementById("studentsBody");
+    const totalSpan   = () => document.getElementById("calcTotal");
+
+    // Auth state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginView().classList.add("hide");
+        panelView().classList.remove("hide");
+        document.getElementById("who").textContent = user.email || "مشرف";
+        loadStudents();
+      } else {
+        panelView().classList.add("hide");
+        loginView().classList.remove("hide");
+      }
+    });
+
+    // Login
+    window.login = async () => {
+      const email = document.getElementById("email").value.trim();
+      const pass  = document.getElementById("password").value.trim();
+      loginMsg().textContent = "";
+      try{
+        await signInWithEmailAndPassword(auth, email, pass);
+      }catch(err){
+        loginMsg().textContent = "خطأ في تسجيل الدخول";
+        console.error(err);
+      }
+    };
+
+    window.logout = async () => { await signOut(auth); };
+
+    // ===== Helpers =====
+    const num = (v) => Number(v || 0);
+    const computeTotal = (hw, classwork, activity) => num(hw)+num(classwork)+num(activity); // الغياب لا يدخل
+
+    // ===== CRUD =====
+    // Add/Update student
+    window.saveStudent = async () => {
+      const id        = document.getElementById("st_id").value.trim();
+      if(!id){ alert("أدخل رقم الهوية/المعرف كـ Document ID"); return; }
+      const name      = document.getElementById("st_name").value.trim();
+      const nidHash   = document.getElementById("st_nid").value.trim();
+      const klass     = document.getElementById("st_class").value.trim();
+      const hw        = num(document.getElementById("st_hw").value);
+      const classwork = num(document.getElementById("st_classwork").value);
+      const activity  = num(document.getElementById("st_activity").value);
+      const absence   = num(document.getElementById("st_absence").value);
+      const notes     = document.getElementById("st_notes").value.trim();
+
+      const total     = computeTotal(hw,classwork,activity);
+
+      const payload = {
+        Name: name,
+        Nid_hash: nidHash,
+        Class: klass,
+        Hw: hw,
+        Classwork: classwork,
+        Activity: activity,
+        Absence: absence,
+        Notes: notes,
+        Total: total
+      };
+
+      try{
+        await setDoc(doc(db,"students", id), payload, { merge:true });
+        alert("🚀 تم الحفظ / التحديث بنجاح");
+        clearForm();
+        loadStudents();
+      }catch(err){ console.error(err); alert("تعذر الحفظ"); }
+    };
+
+    // Delete
+    window.deleteStudent = async (id) => {
+      if(!confirm("هل تريد حذف هذا الطالب؟")) return;
+      try{
+        await deleteDoc(doc(db,"students",id));
+        loadStudents();
+      }catch(e){ console.error(e); alert("تعذر الحذف"); }
+    };
+
+    // Increment/Decrement field
+    window.bump = async (id, field, delta) => {
+      try{
+        const ref = doc(db, "students", id);
+        const snap = await getDoc(ref);
+        if(!snap.exists()) return;
+        const data = snap.data();
+        const updated = { ...data, [field]: num(data[field])+delta };
+        // أعد احتساب المجموع
+        updated.Total = computeTotal(updated.Hw, updated.Classwork, updated.Activity);
+        await setDoc(ref, updated);
+        loadStudents();
+      }catch(e){ console.error(e); alert("تعذر التحديث"); }
+    };
+
+    // Load students
+    async function loadStudents() {
+      const klassFilter = document.getElementById("filterClass").value.trim();
+      studentsTbody().innerHTML = "<tr><td colspan='10' class='muted'>...جاري التحميل</td></tr>";
+      try{
+        let qRef = collection(db,"students");
+        // ترتيب حسب الاسم
+        let qy;
+        if(klassFilter){
+          qy = query(qRef, where("Class","==",klassFilter));
+        }else{
+          qy = query(qRef);
+        }
+        const qs = await getDocs(qy);
+        const rows = [];
+        qs.forEach(d=>{
+          const s = d.data();
+          rows.push(`
+            <tr>
+              <td class="pill">${d.id}</td>
+              <td>${s.Name||""}</td>
+              <td>${s.Class||""}</td>
+              <td>${num(s.Hw)}</td>
+              <td>${num(s.Classwork)}</td>
+              <td>${num(s.Activity)}</td>
+              <td>${num(s.Absence)}</td>
+              <td><strong>${num(s.Total)}</strong></td>
+              <td>${s.Notes||""}</td>
+              <td class="tools">
+                <button class="mini ghost" onclick="bump('${d.id}','Hw',1)">+ واجب</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Hw',-1)">- واجب</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Classwork',1)">+ صفي</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Classwork',-1)">- صفي</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Activity',1)">+ نشاط</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Activity',-1)">- نشاط</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Absence',1)">+ غياب</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Absence',-1)">- غياب</button>
+                <button class="mini danger" onclick="deleteStudent('${d.id}')">حذف</button>
+              </td>
+            </tr>
+          `);
         });
+        studentsTbody().innerHTML = rows.length? rows.join("") : `<tr><td colspan="10" class="muted">لا يوجد طلاب</td></tr>`;
+      }catch(e){
+        console.error(e);
+        studentsTbody().innerHTML = `<tr><td colspan="10" class="muted">تعذر التحميل</td></tr>`;
+      }
     }
+
+    // UI helpers
+    function clearForm(){
+      ["st_id","st_name","st_nid","st_class","st_notes","st_hw","st_classwork","st_activity","st_absence"].forEach(id=>document.getElementById(id).value="");
+      totalSpan().textContent = "0";
+    }
+
+    // live total calc
+    ["st_hw","st_classwork","st_activity"].forEach(id=>{
+      document.addEventListener("input",(e)=>{
+        if(e.target.id===id){
+          const hw = num(document.getElementById("st_hw").value);
+          const cw = num(document.getElementById("st_classwork").value);
+          const ac = num(document.getElementById("st_activity").value);
+          totalSpan().textContent = computeTotal(hw,cw,ac);
+        }
+      });
+    });
+
+    // filters
+    window.applyFilter = () => loadStudents();
   </script>
+</head>
+
+<body>
+  <header>
+    <h1>لوحة تحكم المشرف</h1>
+    <div class="right">
+      <span class="muted">المستخدم: <span id="who">—</span></span>
+      <button class="ghost" onclick="logout()">تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- شاشة تسجيل الدخول -->
+    <section id="loginView" class="card">
+      <h2>تسجيل الدخول</h2>
+      <div class="row">
+        <input id="email" type="email" placeholder="البريد الإلكتروني"/>
+        <input id="password" type="password" placeholder="كلمة المرور"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="primary" onclick="login()">دخول</button>
+      </div>
+      <p id="loginMsg" class="muted"></p>
+      <p class="muted">تأكد أن نطاق <code>mjeed119.github.io</code> مضاف في Authorized domains داخل Authentication.</p>
+    </section>
+
+    <!-- اللوحة بعد تسجيل الدخول -->
+    <section id="panelView" class="hide">
+      <!-- إضافة / تحديث طالب -->
+      <div class="card">
+        <h3>إضافة / تحديث طالب</h3>
+        <div class="row">
+          <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
+          <input id="st_name" placeholder="الاسم" />
+          <input id="st_nid" placeholder="رقم الهوية (اختياري)" />
+          <input id="st_class" placeholder="الفصل (مثال: 105)" />
+        </div>
+        <div class="row">
+          <input id="st_hw" type="number" placeholder="الواجبات Hw" />
+          <input id="st_classwork" type="number" placeholder="النشاط الصفي Classwork" />
+          <input id="st_activity" type="number" placeholder="نشاط إضافي Activity" />
+          <input id="st_absence" type="number" placeholder="الغياب Absence (لا يدخل في المجموع)" />
+        </div>
+        <div class="row">
+          <input id="st_notes" placeholder="ملاحظات" />
+          <button class="ok" onclick="saveStudent()">حفظ / تحديث</button>
+          <span class="pill">المجموع: <strong id="calcTotal">0</strong></span>
+        </div>
+      </div>
+
+      <!-- فلترة -->
+      <div class="card">
+        <div class="row">
+          <input id="filterClass" placeholder="فلترة بالفصل (مثال: 105)" />
+          <button class="ghost" onclick="applyFilter()">تطبيق الفلتر</button>
+          <a class="link" href="https://console.firebase.google.com/" target="_blank">فتح Firebase Console ↗</a>
+        </div>
+      </div>
+
+      <!-- جدول الطلاب -->
+      <div class="card">
+        <h3>قائمة الطلاب</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>الاسم</th>
+              <th>الفصل</th>
+              <th>Hw</th>
+              <th>Classwork</th>
+              <th>Activity</th>
+              <th>الغياب</th>
+              <th>المجموع</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
