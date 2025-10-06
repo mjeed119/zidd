@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>درجات الطالب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  body{font-family:system-ui,Segoe UI,Tahoma;max-width:720px;margin:24px auto;padding:0 12px}
+  .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin-top:12px}
+  label,input,button{font-size:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{border:1px solid #eee;padding:8px;text-align:center}
+  #msg{margin-top:8px}
+</style>
+</head>
+<body>
+<h1>الدرجات</h1>
+<p>أدخل رقم الهوية/السجل المدني للاستعلام عن درجتك.</p>
+
+<div class="card">
+  <label for="nid">رقم الهوية:</label>
+  <input id="nid" type="text" inputmode="numeric" placeholder="مثال: 1234567890">
+  <button id="searchBtn">بحث</button>
+  <div id="msg"></div>
+  <div id="result" style="display:none">
+    <h3 id="studentName"></h3>
+    <p><b>الفصل:</b> <span id="studentClass"></span></p>
+    <p><b>المجموع:</b> <span id="studentTotal"></span></p>
+    <table id="gradesTable">
+      <thead><tr><th>المادة</th><th>الدرجة</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="notesWrap" style="display:none;margin-top:8px">
+      <b>ملاحظات المعلم:</b>
+      <div id="notes"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./firebase.js"></script>
+<script>
+const els = {
+  nid: document.getElementById('nid'),
+  btn: document.getElementById('searchBtn'),
+  msg: document.getElementById('msg'),
+  res: document.getElementById('result'),
+  name: document.getElementById('studentName'),
+  klass: document.getElementById('studentClass'),
+  total: document.getElementById('studentTotal'),
+  tbody: document.querySelector('#gradesTable tbody'),
+  notesWrap: document.getElementById('notesWrap'),
+  notes: document.getElementById('notes'),
+};
+
+async function fetchStudent(nid){
+  const doc = await db.collection('students').doc(nid).get();
+  if(!doc.exists) return null;
+  return doc.data();
+}
+
+function renderStudent(s){
+  els.res.style.display = 'block';
+  els.name.textContent = s.name || 'بدون اسم';
+  els.klass.textContent = s.class || '-';
+  els.total.textContent = (s.total ?? '-');
+  els.tbody.innerHTML = '';
+  (s.grades || []).forEach(g=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${g.subject}</td><td>${g.score}</td>`;
+    els.tbody.appendChild(tr);
+  });
+  if(s.notes){
+    els.notesWrap.style.display = 'block';
+    els.notes.textContent = s.notes;
+  }else{
+    els.notesWrap.style.display = 'none';
+  }
+}
+
+els.btn.onclick = async ()=>{
+  els.msg.textContent = 'جاري البحث...';
+  els.res.style.display = 'none';
+  const nid = els.nid.value.trim();
+  if(!nid){ els.msg.textContent = 'الرجاء إدخال رقم الهوية'; return; }
+  try{
+    const s = await fetchStudent(nid);
+    if(!s){ els.msg.textContent = 'لم يتم العثور على بيانات لهذا الرقم.'; return; }
+    els.msg.textContent = '';
+    renderStudent(s);
+  }catch(e){
+    console.error(e);
+    els.msg.textContent = 'حدث خطأ غير متوقع.';
+  }
+};
+</script>
+</body>
+</html>

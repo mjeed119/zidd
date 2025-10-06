@@ -1,0 +1,10 @@
+{
+  "name": "excel-to-firestore",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "xlsx": "^0.18.5"
+  }
+}
