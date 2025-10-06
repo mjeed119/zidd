@@ -36,9 +36,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    // 🔧 ضع إعدادات مشروعك (كما هي عندك)
+    // 🔧 إعدادات مشروعك
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -91,7 +91,9 @@
 
     // ===== Helpers =====
     const num = (v) => Number(v || 0);
-    const computeTotal = (hw, classwork, activity) => num(hw)+num(classwork)+num(activity); // الغياب لا يدخل
+    // 🔢 المجموع بدون الغياب: Hw + Classwork + Activity + Research + Theoretical + Practical
+    const computeTotal = (hw, classwork, activity, research, theoretical, practical) =>
+      num(hw)+num(classwork)+num(activity)+num(research)+num(theoretical)+num(practical);
 
     // ===== CRUD =====
     // Add/Update student
@@ -101,13 +103,17 @@
       const name      = document.getElementById("st_name").value.trim();
       const nidHash   = document.getElementById("st_nid").value.trim();
       const klass     = document.getElementById("st_class").value.trim();
+
       const hw        = num(document.getElementById("st_hw").value);
       const classwork = num(document.getElementById("st_classwork").value);
       const activity  = num(document.getElementById("st_activity").value);
+      const research  = num(document.getElementById("st_research").value);      // جديد
+      const theoretical = num(document.getElementById("st_theoretical").value); // جديد
+      const practical   = num(document.getElementById("st_practical").value);   // جديد
       const absence   = num(document.getElementById("st_absence").value);
       const notes     = document.getElementById("st_notes").value.trim();
 
-      const total     = computeTotal(hw,classwork,activity);
+      const total     = computeTotal(hw,classwork,activity,research,theoretical,practical);
 
       const payload = {
         Name: name,
@@ -116,6 +122,9 @@
         Hw: hw,
         Classwork: classwork,
         Activity: activity,
+        Research: research,
+        Theoretical: theoretical,
+        Practical: practical,
         Absence: absence,
         Notes: notes,
         Total: total
@@ -146,8 +155,11 @@
         if(!snap.exists()) return;
         const data = snap.data();
         const updated = { ...data, [field]: num(data[field])+delta };
-        // أعد احتساب المجموع
-        updated.Total = computeTotal(updated.Hw, updated.Classwork, updated.Activity);
+        // أعد احتساب المجموع (بدون الغياب)
+        updated.Total = computeTotal(
+          updated.Hw, updated.Classwork, updated.Activity,
+          updated.Research || 0, updated.Theoretical || 0, updated.Practical || 0
+        );
         await setDoc(ref, updated);
         loadStudents();
       }catch(e){ console.error(e); alert("تعذر التحديث"); }
@@ -156,16 +168,10 @@
     // Load students
     async function loadStudents() {
       const klassFilter = document.getElementById("filterClass").value.trim();
-      studentsTbody().innerHTML = "<tr><td colspan='10' class='muted'>...جاري التحميل</td></tr>";
+      studentsTbody().innerHTML = "<tr><td colspan='13' class='muted'>...جاري التحميل</td></tr>";
       try{
         let qRef = collection(db,"students");
-        // ترتيب حسب الاسم
-        let qy;
-        if(klassFilter){
-          qy = query(qRef, where("Class","==",klassFilter));
-        }else{
-          qy = query(qRef);
-        }
+        let qy = klassFilter ? query(qRef, where("Class","==",klassFilter)) : query(qRef);
         const qs = await getDocs(qy);
         const rows = [];
         qs.forEach(d=>{
@@ -178,44 +184,66 @@
               <td>${num(s.Hw)}</td>
               <td>${num(s.Classwork)}</td>
               <td>${num(s.Activity)}</td>
+              <td>${num(s.Research)}</td>
+              <td>${num(s.Theoretical)}</td>
+              <td>${num(s.Practical)}</td>
               <td>${num(s.Absence)}</td>
               <td><strong>${num(s.Total)}</strong></td>
               <td>${s.Notes||""}</td>
               <td class="tools">
                 <button class="mini ghost" onclick="bump('${d.id}','Hw',1)">+ واجب</button>
                 <button class="mini ghost" onclick="bump('${d.id}','Hw',-1)">- واجب</button>
+
                 <button class="mini ghost" onclick="bump('${d.id}','Classwork',1)">+ صفي</button>
                 <button class="mini ghost" onclick="bump('${d.id}','Classwork',-1)">- صفي</button>
+
                 <button class="mini ghost" onclick="bump('${d.id}','Activity',1)">+ نشاط</button>
                 <button class="mini ghost" onclick="bump('${d.id}','Activity',-1)">- نشاط</button>
+
+                <button class="mini ghost" onclick="bump('${d.id}','Research',1)">+ بحث</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Research',-1)">- بحث</button>
+
+                <button class="mini ghost" onclick="bump('${d.id}','Theoretical',1)">+ نظري</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Theoretical',-1)">- نظري</button>
+
+                <button class="mini ghost" onclick="bump('${d.id}','Practical',1)">+ عملي</button>
+                <button class="mini ghost" onclick="bump('${d.id}','Practical',-1)">- عملي</button>
+
                 <button class="mini ghost" onclick="bump('${d.id}','Absence',1)">+ غياب</button>
                 <button class="mini ghost" onclick="bump('${d.id}','Absence',-1)">- غياب</button>
+
                 <button class="mini danger" onclick="deleteStudent('${d.id}')">حذف</button>
               </td>
             </tr>
           `);
         });
-        studentsTbody().innerHTML = rows.length? rows.join("") : `<tr><td colspan="10" class="muted">لا يوجد طلاب</td></tr>`;
+        studentsTbody().innerHTML = rows.length? rows.join("") : `<tr><td colspan="13" class="muted">لا يوجد طلاب</td></tr>`;
       }catch(e){
         console.error(e);
-        studentsTbody().innerHTML = `<tr><td colspan="10" class="muted">تعذر التحميل</td></tr>`;
+        studentsTbody().innerHTML = `<tr><td colspan="13" class="muted">تعذر التحميل</td></tr>`;
       }
     }
 
     // UI helpers
+    function val(id){ return document.getElementById(id).value = ""; }
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_notes","st_hw","st_classwork","st_activity","st_absence"].forEach(id=>document.getElementById(id).value="");
+      ["st_id","st_name","st_nid","st_class","st_notes",
+       "st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence"
+      ].forEach(id=> val(id));
       totalSpan().textContent = "0";
     }
 
     // live total calc
-    ["st_hw","st_classwork","st_activity"].forEach(id=>{
+    ["st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical"].forEach(id=>{
       document.addEventListener("input",(e)=>{
         if(e.target.id===id){
           const hw = num(document.getElementById("st_hw").value);
           const cw = num(document.getElementById("st_classwork").value);
           const ac = num(document.getElementById("st_activity").value);
-          totalSpan().textContent = computeTotal(hw,cw,ac);
+          const rs = num(document.getElementById("st_research").value);
+          const th = num(document.getElementById("st_theoretical").value);
+          const pr = num(document.getElementById("st_practical").value);
+          totalSpan().textContent = computeTotal(hw,cw,ac,rs,th,pr);
         }
       });
     });
@@ -264,10 +292,15 @@
           <input id="st_hw" type="number" placeholder="الواجبات Hw" />
           <input id="st_classwork" type="number" placeholder="النشاط الصفي Classwork" />
           <input id="st_activity" type="number" placeholder="نشاط إضافي Activity" />
-          <input id="st_absence" type="number" placeholder="الغياب Absence (لا يدخل في المجموع)" />
+          <input id="st_research" type="number" placeholder="البحث (من 5)" />          <!-- جديد -->
         </div>
         <div class="row">
+          <input id="st_theoretical" type="number" placeholder="الاختبار النظري" />    <!-- جديد -->
+          <input id="st_practical"   type="number" placeholder="الاختبار العملي" />    <!-- جديد -->
+          <input id="st_absence" type="number" placeholder="الغياب Absence (لا يدخل في المجموع)" />
           <input id="st_notes" placeholder="ملاحظات" />
+        </div>
+        <div class="row">
           <button class="ok" onclick="saveStudent()">حفظ / تحديث</button>
           <span class="pill">المجموع: <strong id="calcTotal">0</strong></span>
         </div>
@@ -294,6 +327,9 @@
               <th>Hw</th>
               <th>Classwork</th>
               <th>Activity</th>
+              <th>Research</th>
+              <th>Theoretical</th>
+              <th>Practical</th>
               <th>الغياب</th>
               <th>المجموع</th>
               <th>ملاحظات</th>
