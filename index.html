@@ -1,98 +1,405 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>درجات الطالب</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<style>
-  body{font-family:system-ui,Segoe UI,Tahoma;max-width:720px;margin:24px auto;padding:0 12px}
-  .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin-top:12px}
-  label,input,button{font-size:16px}
-  table{width:100%;border-collapse:collapse;margin-top:12px}
-  th,td{border:1px solid #eee;padding:8px;text-align:center}
-  #msg{margin-top:8px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>بوابة الدرجات</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --border:#e6e8ef; --muted:#7c8499;
+      --primary:#3b5bdb; --primary-weak:#ecf1ff; --text:#0f1220;
+    }
+    html[data-theme="light"]{
+      --bg:#f5f7fb; --card:#ffffff; --border:#e6e8ef; --muted:#7c8499;
+      --primary:#3b5bdb; --primary-weak:#ecf1ff; --text:#0f1220;
+    }
+    html[data-theme="dark"]{
+      --bg:#0f1220; --card:#171a2b; --border:#2a2e43; --muted:#a2a8c3;
+      --primary:#7b90ff; --primary-weak:#1e2450; --text:#e8ecff;
+    }
+
+    body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial;margin:0}
+    .container{max-width:900px;margin:24px auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+          padding:18px;margin:14px 0;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    h1,h2,h3{margin:.25rem 0 .5rem}
+    label{font-weight:600;margin-bottom:6px;display:inline-block}
+    select{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+    .grades{width:100%;border-collapse:collapse;margin-top:8px;border-radius:12px;overflow:hidden}
+    .grades th,.grades td{border:1px solid var(--border);padding:12px;text-align:center}
+    .grades th{background:#f3f5fb}
+    html[data-theme="dark"] .grades th{background:#1d223a}
+    .btn{padding:10px 14px;border:1px solid #cfd3df;border-radius:10px;background:var(--primary-weak);
+         cursor:pointer;font-weight:600;color:var(--text)}
+    .btn:hover{filter:brightness(.98)}
+    .muted{color:var(--muted);font-size:12px}
+    .header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .list{list-style:none;padding:0;margin:0}
+    .res-item{display:flex;justify-content:space-between;gap:12px;align-items:center;
+              padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;
+              background:#fff}
+    html[data-theme="dark"] .res-item{background:#14182b}
+    .res-item a{font-weight:600;text-decoration:none}
+    .res-meta{color:var(--muted);font-size:12px}
+    .ann-list{list-style:none;padding:0;margin:0}
+    .ann-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);
+              border-radius:12px;background:var(--card);margin-bottom:10px}
+    .badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+    .badge.hw{background:#fff3bf}
+    .badge.exam{background:#ffe3e3}
+    .badge.info{background:#e7f5ff}
+    .ann-date{color:var(--muted);font-size:12px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    #topNotice{display:none;margin:12px 0 16px;padding:0;border:1px solid #ffd8a8;background:#fff4e6;border-radius:10px;overflow:hidden}
+    .ticker{position:relative;white-space:nowrap;overflow:hidden;padding:10px 14px}
+    .ticker__track{display:inline-block;will-change:transform;animation:marquee 18s linear infinite}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    .ticker__item{margin-inline-end:24px}
+  </style>
 </head>
 <body>
-<h1>الدرجات</h1>
-<p>أدخل رقم الهوية/السجل المدني للاستعلام عن درجتك.</p>
-
-<div class="card">
-  <label for="nid">رقم الهوية:</label>
-  <input id="nid" type="text" inputmode="numeric" placeholder="مثال: 1234567890">
-  <button id="searchBtn">بحث</button>
-  <div id="msg"></div>
-  <div id="result" style="display:none">
-    <h3 id="studentName"></h3>
-    <p><b>الفصل:</b> <span id="studentClass"></span></p>
-    <p><b>المجموع:</b> <span id="studentTotal"></span></p>
-    <table id="gradesTable">
-      <thead><tr><th>المادة</th><th>الدرجة</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div id="notesWrap" style="display:none;margin-top:8px">
-      <b>ملاحظات المعلم:</b>
-      <div id="notes"></div>
+  <main class="container">
+    <div class="topbar">
+      <h1 style="margin:0;">بوابة الدرجات</h1>
+      <div style="display:flex; gap:8px;">
+        <a class="btn" href="admin.html">لوحة المشرف</a>
+        <button class="btn" id="toggleTheme">الوضع الداكن</button>
+      </div>
     </div>
-  </div>
-</div>
 
-<script src="./firebase.js"></script>
-<script>
-const els = {
-  nid: document.getElementById('nid'),
-  btn: document.getElementById('searchBtn'),
-  msg: document.getElementById('msg'),
-  res: document.getElementById('result'),
-  name: document.getElementById('studentName'),
-  klass: document.getElementById('studentClass'),
-  total: document.getElementById('studentTotal'),
-  tbody: document.querySelector('#gradesTable tbody'),
-  notesWrap: document.getElementById('notesWrap'),
-  notes: document.getElementById('notes'),
-};
+    <!-- شريط إعلان -->
+    <div id="topNotice">
+      <div class="ticker"><div id="tickerTrack" class="ticker__track"></div></div>
+    </div>
 
-async function fetchStudent(nid){
-  const doc = await db.collection('students').doc(nid).get();
-  if(!doc.exists) return null;
-  return doc.data();
-}
+    <section class="card">
+      <label for="classSelect">اختر الفصل:</label>
+      <select id="classSelect"><option value="">— اختر —</option></select>
+      <div class="muted" id="classCount" style="margin-top:8px;"></div>
+    </section>
 
-function renderStudent(s){
-  els.res.style.display = 'block';
-  els.name.textContent = s.name || 'بدون اسم';
-  els.klass.textContent = s.class || '-';
-  els.total.textContent = (s.total ?? '-');
-  els.tbody.innerHTML = '';
-  (s.grades || []).forEach(g=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${g.subject}</td><td>${g.score}</td>`;
-    els.tbody.appendChild(tr);
-  });
-  if(s.notes){
-    els.notesWrap.style.display = 'block';
-    els.notes.textContent = s.notes;
-  }else{
-    els.notesWrap.style.display = 'none';
-  }
-}
+    <section class="card" id="studentSection" style="display:none">
+      <label for="studentSelect">اختر اسمك:</label>
+      <select id="studentSelect"><option value="">— اختر —</option></select>
+    </section>
 
-els.btn.onclick = async ()=>{
-  els.msg.textContent = 'جاري البحث...';
-  els.res.style.display = 'none';
-  const nid = els.nid.value.trim();
-  if(!nid){ els.msg.textContent = 'الرجاء إدخال رقم الهوية'; return; }
-  try{
-    const s = await fetchStudent(nid);
-    if(!s){ els.msg.textContent = 'لم يتم العثور على بيانات لهذا الرقم.'; return; }
-    els.msg.textContent = '';
-    renderStudent(s);
-  }catch(e){
-    console.error(e);
-    els.msg.textContent = 'حدث خطأ غير متوقع.';
-  }
-};
-</script>
+    <section class="card" id="gradesSection" style="display:none">
+      <div class="header-row">
+        <h2 id="studentHeader"></h2>
+        <button id="objectionBtn" class="btn" disabled>تقديم اعتراض</button>
+      </div>
+      <div id="gradesTableWrapper"></div>
+      <div class="totals" style="margin-top:10px; display:flex; gap:16px;">
+        <div>المجموع: <span id="totalScore">—</span></div>
+        <div>النسبة: <span id="percentScore">—</span>%</div>
+      </div>
+    </section>
+
+    <section class="card" id="resourcesSection">
+      <h2>المراجع والخطط</h2>
+      <h3>أوراق العمل / المذكرات</h3>
+      <ul id="wsList" class="list"></ul>
+      <h3>الخطط الأسبوعية</h3>
+      <ul id="plansList" class="list"></ul>
+      <h3 id="bookHeader" style="display:none;">كتاب الطالب</h3>
+      <ul id="bookList" class="list"></ul>
+      <h3 id="linksHeader" style="display:none;">روابط مفيدة</h3>
+      <ul id="linksList" class="list"></ul>
+    </section>
+
+    <section class="card" id="announcementsSection">
+      <h2>الإعلانات</h2>
+      <ul id="annList" class="ann-list"></ul>
+      <div class="muted"><code></code></div>
+    </section>
+
+    <footer><small>© <span id="year"></span> معلم التقنية الرقمية: عبدالمجيد الغامدي</small></footer>
+  </main>
+
+  <!-- Firebase + Firestore (Module) -->
+  <script type="module">
+    /* ================= Theme ================= */
+    const toggleThemeBtn = document.getElementById("toggleTheme");
+    function applyTheme(t){
+      document.documentElement.dataset.theme = t;
+      localStorage.setItem("theme", t);
+      toggleThemeBtn.textContent = t === "dark" ? "الوضع الفاتح" : "الوضع الداكن";
+    }
+    applyTheme(localStorage.getItem("theme") || "light");
+    toggleThemeBtn.onclick = ()=> applyTheme(
+      (document.documentElement.dataset.theme === "dark") ? "light" : "dark"
+    );
+
+    /* ====== اعادة استخدام مكونات الصفحة ====== */
+    const classSelect = document.getElementById("classSelect");
+    const studentSection = document.getElementById("studentSection");
+    const studentSelect = document.getElementById("studentSelect");
+    const gradesSection = document.getElementById("gradesSection");
+    const studentHeader = document.getElementById("studentHeader");
+    const gradesTableWrapper = document.getElementById("gradesTableWrapper");
+    const totalScoreEl = document.getElementById("totalScore");
+    const percentScoreEl = document.getElementById("percentScore");
+    const objectionBtn = document.getElementById("objectionBtn");
+    const classCount = document.getElementById("classCount");
+
+    const wsList = document.getElementById("wsList");
+    const plansList = document.getElementById("plansList");
+    const linksList = document.getElementById("linksList");
+    const linksHeader = document.getElementById("linksHeader");
+    const bookList = document.getElementById("bookList");
+    const bookHeader = document.getElementById("bookHeader");
+    const tickerTrack = document.getElementById("tickerTrack");
+    const topNotice = document.getElementById("topNotice");
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    /* ====== أعمدة الدرجات (مطابقة لصفحة الطالب) ====== */
+    const COLUMNS = [
+      { key: "Homework",    label: "الواجبات",   map: "Hw" },
+      { key: "Research",    label: "البحث",      map: "Research" },
+      { key: "ClassActivity", label: "النشاط الصفي", map: "Activity" },
+      { key: "Absence",     label: "الغياب",     map: "Absence" },
+      { key: "Theoretical", label: "الاختبار النظري", map: "Theoretical" },
+      { key: "Practical",   label: "الاختبار العملي",  map: "Practical" },
+    ];
+    const EXCLUDE_FROM_TOTAL = new Set(["Absence"]);
+
+    const GOOGLE_FORMS_OBJECTION_BASE =
+      "https://docs.google.com/forms/d/e/1FAIpQLSeIvg3cD2YHY-wfpuX6d15xXxjft2BVfpdKI0NRaRG3BY98yg/viewform?usp=pp_url";
+    const ENTRY_NAME_ID  = "entry.284994531";
+    const ENTRY_CLASS_ID = "entry.1748397745";
+
+    /* ====== Firebase ====== */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getFirestore, collection, getDocs, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    // 👇 غيّر هذه القيم لقيم مشروعك
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    /* ====== تحميل الطلاب (كلهم مرة واحدة) ثم بناء الفصول ====== */
+    let ALL = [];             // كل الطلاب
+    let byClass = {};         // { "105": [students], ... }
+    let currentClass = null;
+
+    function N(v){ return Number(v || 0); }
+
+    function indexByClass(){
+      byClass = {};
+      ALL.forEach(s => {
+        const c = String(s.Class || "غير محدد");
+        (byClass[c] ||= []).push(s);
+      });
+    }
+
+    function buildClassSelect(){
+      const classes = Object.keys(byClass).sort((a,b)=> a.localeCompare(b,'ar'));
+      const cur = classSelect.value;
+      classSelect.innerHTML = '<option value="">— اختر —</option>' +
+        classes.map(c => `<option value="${c}">${c}</option>`).join('');
+      if (classes.includes(cur)) classSelect.value = cur;
+    }
+
+    async function loadStudents(){
+      // متابعة لحظية لأي تغييرات
+      const qAll = query(collection(db,'students'), orderBy('Name'));
+      onSnapshot(qAll, (snap)=>{
+        ALL = [];
+        snap.forEach(d=>{
+          const s = d.data()||{};
+          ALL.push({
+            id: d.id,
+            Name: s.Name || "",
+            Class: s.Class || "",
+            Hw: N(s.Hw),
+            Classwork: N(s.Classwork),
+            Activity: N(s.Activity),
+            Absence: N(s.Absence),
+            Research: N(s.Research),
+            Theoretical: N(s.Theoretical),
+            Practical: N(s.Practical),
+            Notes: s.Notes || "",
+            Total: (s.Total!=null ? N(s.Total) : null) // إن موجود حنستخدمه لاحقًا
+          });
+        });
+        indexByClass();
+        buildClassSelect();
+        // إن كان الفصل الحالي مُختار، حدّث الطلاب
+        if (currentClass) populateStudents(currentClass);
+      }, (err)=>{
+        alert("تعذر تحميل بيانات الطلاب");
+        console.error(err);
+      });
+    }
+
+    function populateStudents(className){
+      studentSelect.innerHTML = '<option value="">— اختر —</option>';
+      const list = (byClass[className] || []).slice().sort((a,b)=> a.Name.localeCompare(b.Name,'ar'));
+      classCount.textContent = list.length ? `عدد طلاب الفصل: ${list.length}` : '';
+      for (const s of list){
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.Name;
+        studentSelect.appendChild(opt);
+      }
+    }
+
+    function renderGrades(student){
+      studentHeader.textContent = `${student.Name} — ${currentClass}`;
+
+      const table = document.createElement("table");
+      table.className = "grades";
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th>البند</th><th>الدرجة</th></tr>";
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      let total = 0;
+
+      for (const col of COLUMNS){
+        const value = N(student[col.map]); // قراءة من Firestore بحسب map
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${col.label}</td><td>${value}</td>`;
+        tbody.appendChild(tr);
+        if (!EXCLUDE_FROM_TOTAL.has(col.key)) total += value;
+      }
+      table.appendChild(tbody);
+
+      gradesTableWrapper.innerHTML = "";
+      gradesTableWrapper.appendChild(table);
+
+      const finalTotal = (student.Total!=null) ? N(student.Total) : total;
+      totalScoreEl.textContent = String(finalTotal);
+      // لو حاب تحسب نسبة من 100 فقط
+      percentScoreEl.textContent = String((finalTotal).toFixed(2));
+
+      objectionBtn.disabled = false;
+      objectionBtn.onclick = ()=>{
+        const params = new URLSearchParams();
+        params.set(ENTRY_CLASS_ID, currentClass);
+        params.set(ENTRY_NAME_ID, student.Name);
+        window.open(GOOGLE_FORMS_OBJECTION_BASE + "&" + params.toString(), "_blank");
+      };
+    }
+
+    /* ====== موارد ثابتة (تبقى كما كانت) ====== */
+    async function loadResources(){
+      try{
+        let res = await fetch("data/resources.json", { cache: "no-store" });
+        if (!res.ok) res = await fetch("resources.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        wsList.innerHTML = "";
+        (data.worksheets || []).forEach(w=>{
+          const li = document.createElement("li");
+          li.className = "res-item";
+          li.innerHTML = `<a href="${w.file}" target="_blank" rel="noopener">${w.title}</a>
+                          <span class="res-meta">PDF</span>`;
+          wsList.appendChild(li);
+        });
+
+        plansList.innerHTML = "";
+        (data.plans || []).forEach(p=>{
+          const li = document.createElement("li");
+          li.className = "res-item";
+          li.innerHTML = `<a href="${p.file}" target="_blank" rel="noopener">${p.title}</a>
+                          <span class="res-meta">خطة أسبوعية</span>`;
+          plansList.appendChild(li);
+        });
+
+        bookList.innerHTML = "";
+        const books = data.book || [];
+        bookHeader.style.display = books.length ? "block" : "none";
+        books.forEach(b=>{
+          const li = document.createElement("li");
+          li.className = "res-item";
+          li.innerHTML = `<a href="${b.file}" target="_blank" rel="noopener">${b.title}</a>
+                          <span class="res-meta">PDF</span>`;
+          bookList.appendChild(li);
+        });
+
+        linksList.innerHTML = "";
+        const hasLinks = (data.links || []).length > 0;
+        linksHeader.style.display = hasLinks ? "block" : "none";
+        (data.links || []).forEach(l=>{
+          const li = document.createElement("li");
+          li.className = "res-item";
+          li.innerHTML = `<a href="${l.url}" target="_blank" rel="noopener">${l.title}</a>
+                          <span class="res-meta">رابط</span>`;
+          linksList.appendChild(li);
+        });
+      }catch(e){ console.warn("resources error", e); }
+    }
+
+    async function loadAnnouncements(){
+      try{
+        let res = await fetch("data/announcements.json", { cache:"no-store" });
+        if (!res.ok) res = await fetch("announcements.json", { cache:"no-store" });
+        if (!res.ok) return;
+        const items = await res.json();
+
+        const ul = document.getElementById("annList");
+        ul.innerHTML = "";
+        items.sort((a,b)=> new Date(b.date) - new Date(a.date));
+        for (const it of items){
+          const li = document.createElement("li");
+          li.className = "ann-item";
+          const dateStr = new Date(it.date).toLocaleDateString('ar-SA');
+          const badgeClass = it.type === "exam" ? "exam" : (it.type === "hw" ? "hw" : "info");
+          li.innerHTML = `<span class="badge ${badgeClass}">${it.type === "exam" ? "اختبار" : it.type === "hw" ? "واجب" : "إعلان"}</span>
+            <div>
+              <div style="font-weight:700">${it.title}</div>
+              <div>${it.text || ""}</div>
+              <div class="ann-date">${dateStr}</div>
+            </div>`;
+          ul.appendChild(li);
+        }
+
+        if (items.length){
+          const texts = items.map(it=>{
+            const prefix = (it.type === "exam" ? "📘 اختبار: " : it.type === "hw" ? "📝 واجب: " : "ℹ️ إعلان: ");
+            return prefix + it.title;
+          });
+          tickerTrack.innerHTML =
+            texts.map(t=>`<span class="ticker__item">${t}</span>`).join("") +
+            texts.map(t=>`<span class="ticker__item">${t}</span>`).join("");
+          topNotice.style.display = "block";
+        }else{
+          topNotice.style.display = "none";
+        }
+      }catch(e){ console.warn("announcements error", e); }
+    }
+
+    /* ====== تفاعلات ====== */
+    classSelect.addEventListener("change", ()=>{
+      currentClass = classSelect.value || null;
+      gradesSection.style.display = "none";
+      objectionBtn.disabled = true;
+      if (!currentClass){ studentSection.style.display = "none"; classCount.textContent=''; return; }
+      populateStudents(currentClass);
+      studentSection.style.display = "block";
+    });
+
+    studentSelect.addEventListener("change", ()=>{
+      const studentId = studentSelect.value || null;
+      gradesSection.style.display = "none";
+      if (!studentId) return;
+      const student = (byClass[currentClass] || []).find(s => String(s.id) === String(studentId));
+      if (!student) return;
+      renderGrades(student);
+      gradesSection.style.display = "block";
+    });
+
+    // تشغيل
+    Promise.all([loadStudents(), loadResources()]).then(loadAnnouncements);
+  </script>
 </body>
 </html>
