@@ -1,183 +1,59 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لوحة المشرف</title>
-<style>
-  body{font-family:system-ui;max-width:900px;margin:24px auto;padding:0 12px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .card{border:1px solid #ddd;border-radius:12px;padding:16px}
-  input,textarea,button{font-size:16px;width:100%;margin:6px 0;padding:8px}
-  table{width:100%;border-collapse:collapse;margin-top:12px}
-  th,td{border:1px solid #eee;padding:8px;text-align:center}
-  .row{display:flex;gap:8px}
-</style>
+  <meta charset="UTF-8" />
+  <title>لوحة تحكم المشرف</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <style>
+    body { font-family: sans-serif; direction: rtl; text-align: center; background: #f0f2f5; }
+    .box { background: white; width: 300px; margin: 100px auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    input { width: 90%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+  </style>
 </head>
 <body>
-<h1>لوحة المشرف</h1>
-
-<div class="card" id="authCard">
-  <h3>تسجيل الدخول</h3>
-  <input id="email" type="email" placeholder="البريد">
-  <input id="password" type="password" placeholder="كلمة المرور">
-  <button id="loginBtn">دخول</button>
-  <div id="authMsg"></div>
-</div>
-
-<div id="adminArea" style="display:none">
-  <div class="row">
-    <button id="logoutBtn" style="max-width:200px">تسجيل خروج</button>
-    <div id="whoami" style="margin:auto 0 0 0"></div>
+  <div class="box">
+    <h2>تسجيل دخول المشرف</h2>
+    <input type="email" id="email" placeholder="البريد الإلكتروني" />
+    <input type="password" id="password" placeholder="كلمة المرور" />
+    <button onclick="login()">تسجيل الدخول</button>
+    <p id="msg"></p>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h3>إضافة/تعديل طالب</h3>
-      <input id="s_nid" placeholder="رقم الهوية (مفتاح الوثيقة)">
-      <input id="s_name" placeholder="اسم الطالب">
-      <input id="s_class" placeholder="الفصل (مثال: 3/أ)">
-      <textarea id="s_grades" rows="5" placeholder='الدرجات بصيغة JSON Array مثل:
-[{"subject":"حاسب","score":25},{"subject":"رياضيات","score":20}]'></textarea>
-      <input id="s_total" type="number" placeholder="المجموع">
-      <textarea id="s_notes" rows="2" placeholder="ملاحظات (اختياري)"></textarea>
-      <button id="saveBtn">حفظ (إضافة/تعديل)</button>
-      <button id="deleteBtn" style="background:#fbeaea">حذف الطالب</button>
-      <div id="saveMsg"></div>
-    </div>
-
-    <div class="card">
-      <h3>بحث عن طالب</h3>
-      <input id="q_nid" placeholder="رقم الهوية للبحث (اتركه فاضي لآخر 20)">
-      <button id="qBtn">بحث</button>
-      <div id="qMsg"></div>
-      <table>
-        <thead><tr><th>الهوية</th><th>الاسم</th><th>الفصل</th><th>المجموع</th></tr></thead>
-        <tbody id="qTbody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<script src="./firebase.js"></script>
-<script>
-const els = {
-  authCard: document.getElementById('authCard'),
-  email: document.getElementById('email'),
-  password: document.getElementById('password'),
-  loginBtn: document.getElementById('loginBtn'),
-  authMsg: document.getElementById('authMsg'),
-  adminArea: document.getElementById('adminArea'),
-  logoutBtn: document.getElementById('logoutBtn'),
-  whoami: document.getElementById('whoami'),
-  // form
-  s_nid: document.getElementById('s_nid'),
-  s_name: document.getElementById('s_name'),
-  s_class: document.getElementById('s_class'),
-  s_grades: document.getElementById('s_grades'),
-  s_total: document.getElementById('s_total'),
-  s_notes: document.getElementById('s_notes'),
-  saveBtn: document.getElementById('saveBtn'),
-  deleteBtn: document.getElementById('deleteBtn'),
-  saveMsg: document.getElementById('saveMsg'),
-  // query
-  q_nid: document.getElementById('q_nid'),
-  qBtn: document.getElementById('qBtn'),
-  qMsg: document.getElementById('qMsg'),
-  qTbody: document.getElementById('qTbody'),
-};
-
-auth.onAuthStateChanged(user=>{
-  if(user){
-    els.authCard.style.display='none';
-    els.adminArea.style.display='block';
-    els.whoami.textContent = `دخول: ${user.email}`;
-  }else{
-    els.authCard.style.display='block';
-    els.adminArea.style.display='none';
-    els.whoami.textContent = '';
-  }
-});
-
-els.loginBtn.onclick = async ()=>{
-  els.authMsg.textContent = '...';
-  try{
-    await auth.signInWithEmailAndPassword(els.email.value.trim(), els.password.value.trim());
-    els.authMsg.textContent = '';
-  }catch(e){
-    els.authMsg.textContent = 'فشل تسجيل الدخول';
-    console.error(e);
-  }
-};
-
-els.logoutBtn.onclick = ()=> auth.signOut();
-
-els.saveBtn.onclick = async ()=>{
-  els.saveMsg.textContent = 'يتم الحفظ...';
-  try{
-    const nid = els.s_nid.value.trim();
-    if(!nid) throw new Error('الهوية مطلوبة');
-    let grades = [];
-    if(els.s_grades.value.trim()){
-      grades = JSON.parse(els.s_grades.value.trim());
-    }
-    const payload = {
-      name: els.s_name.value.trim() || null,
-      class: els.s_class.value.trim() || null,
-      grades,
-      total: Number(els.s_total.value || 0),
-      notes: els.s_notes.value.trim() || null,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  <script>
+    // إعدادات Firebase الخاصة بك 🔥
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBx_pv6FEzGw7OyDHNj6u6D9y0Q_Ib5b",
+      authDomain: "students-portal-9eda8.firebaseapp.com",
+      projectId: "students-portal-9eda8",
+      storageBucket: "students-portal-9eda8.appspot.com",
+      messagingSenderId: "279588301357",
+      appId: "1:279588301357:web:37f0ad440810aed4a166a4",
+      measurementId: "G-7FW8J3J4GN"
     };
-    await db.collection('students').doc(nid).set(payload, {merge:true});
-    els.saveMsg.textContent = 'تم الحفظ ✅';
-  }catch(e){
-    console.error(e);
-    els.saveMsg.textContent = 'تعذّر الحفظ ❌ (تحقق من JSON)';
-  }
-};
 
-els.deleteBtn.onclick = async ()=>{
-  const nid = els.s_nid.value.trim();
-  if(!nid){ alert('أدخل الهوية أولاً'); return; }
-  if(!confirm('هل تريد حذف الطالب نهائيًا؟')) return;
-  try{
-    await db.collection('students').doc(nid).delete();
-    els.saveMsg.textContent = 'تم الحذف 🗑️';
-  }catch(e){
-    console.error(e);
-    els.saveMsg.textContent = 'تعذّر الحذف';
-  }
-};
+    // تشغيل Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-els.qBtn.onclick = async ()=>{
-  els.qMsg.textContent = '...';
-  els.qTbody.innerHTML = '';
-  const nid = els.q_nid.value.trim();
-  try{
-    let snap;
-    if(nid){
-      const d = await db.collection('students').doc(nid).get();
-      snap = {docs: d.exists ? [{id: d.id, data:()=>d.data()}] : []};
-    }else{
-      snap = await db.collection('students').orderBy('updatedAt','desc').limit(20).get();
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then((user) => {
+          document.getElementById("msg").innerText = "✅ تم تسجيل الدخول بنجاح";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 1000);
+        })
+        .catch((error) => {
+          document.getElementById("msg").innerText = "❌ خطأ في البريد أو كلمة المرور";
+          console.error(error);
+        });
     }
-    const rows = snap.docs.map(doc=>{
-      const s = doc.data();
-      return `<tr>
-        <td>${doc.id}</td>
-        <td>${s.name||''}</td>
-        <td>${s.class||''}</td>
-        <td>${s.total??''}</td>
-      </tr>`;
-    }).join('');
-    els.qTbody.innerHTML = rows || '<tr><td colspan="4">لا توجد نتائج</td></tr>';
-    els.qMsg.textContent = '';
-  }catch(e){
-    console.error(e);
-    els.qMsg.textContent = 'خطأ في البحث';
-  }
-};
-</script>
+  </script>
 </body>
 </html>
