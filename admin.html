@@ -15,7 +15,6 @@
     .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
     .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
     input,button,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
-    textarea{min-height:120px;resize:vertical}
     input::placeholder,textarea::placeholder{color:#6d85aa}
     button{cursor:pointer}
     .primary{background:var(--accent);border-color:#3f70cc}
@@ -31,21 +30,12 @@
     .hide{display:none}
     a.link{color:#8fb6ff;text-decoration:none}
     .mini{padding:6px 10px;border-radius:8px}
-   
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
     }
-    .hint{font-size:12px; color:var(--muted); margin-top:6px}
-    .ok-chip{display:inline-block; padding:2px 8px; border-radius:999px; background:#163b28; color:#bff3d1; font-size:12px; border:1px solid #2b6b49}
-    .warn-chip{display:inline-block; padding:2px 8px; border-radius:999px; background:#3b2f16; color:#ffe9b3; font-size:12px; border:1px solid #8a6d2a}
-    .err{color:#ffb3b3}
-    .dirty{outline:2px solid #2ecc71; border-radius:6px}
-    .grid{overflow:auto}
-    .grid input[type=number]{width:80px;text-align:center}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2b6b49;background:#163b28;color:#bff3d1;font-size:12px}
   </style>
 </head>
 
@@ -70,14 +60,14 @@
         <button class="primary" id="loginBtn">دخول</button>
       </div>
       <p id="loginMsg" class="muted"></p>
-      <p class="muted">تأكد أن نطاق <code>mjeed119.github.io</code> مضاف في Authorized domains داخل Authentication.</p>
+      <p class="muted">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Authentication → Settings → Authorized domains.</p>
     </section>
 
     <!-- اللوحة -->
     <section id="panelView" class="hide">
       <!-- إضافة / تحديث طالب -->
       <div class="card no-print">
-        <h3>إضافة / تحديث طالب فردي</h3>
+        <h3>إضافة / تحديث طالب</h3>
         <div class="row">
           <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
           <input id="st_name" placeholder="الاسم" />
@@ -85,92 +75,20 @@
           <input id="st_class" placeholder="الفصل (مثال: 105)" />
         </div>
         <div class="row">
-          <input id="st_hw" type="number" placeholder="الواجبات Hw" />
-          <input id="st_classwork" type="number" placeholder="النشاط الصفي Classwork" />
-          <input id="st_activity" type="number" placeholder="نشاط إضافي Activity" />
-          <input id="st_research" type="number" placeholder="البحث (من 5)" />
+          <input id="st_hw" type="number" placeholder="Hw" />
+          <input id="st_classwork" type="number" placeholder="Classwork" />
+          <input id="st_activity" type="number" placeholder="Activity" />
+          <input id="st_research" type="number" placeholder="Research" />
         </div>
         <div class="row">
-          <input id="st_theoretical" type="number" placeholder="الاختبار النظري" />
-          <input id="st_practical"   type="number" placeholder="الاختبار العملي" />
-          <input id="st_absence" type="number" placeholder="الغياب Absence (لا يدخل في المجموع)" />
+          <input id="st_theoretical" type="number" placeholder="Theoretical" />
+          <input id="st_practical"   type="number" placeholder="Practical" />
+          <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
           <input id="st_notes" placeholder="ملاحظات" />
         </div>
         <div class="row">
           <button class="ok" id="saveBtn">حفظ / تحديث</button>
           <button class="ghost" id="clearBtn">تفريغ الحقول</button>
-        </div>
-      </div>
-
-      <!-- استيراد جماعي طلاب (إضافة/دمج) -->
-      <div class="card no-print">
-        <h3>استيراد جماعي للطلاب (إنشاء/دمج)</h3>
-        <p class="hint">
-          انسخ الصفوف من الإكسل: <span class="ok-chip">ID, Name, Class</span> أو مع الأعمدة الإضافية … ثم “معاينة” → “استيراد الطلاب”.
-        </p>
-        <textarea id="bulkInput" placeholder="ID<Tab>Name<Tab>Class ..."></textarea>
-        <div class="row" style="margin-top:8px">
-          <button class="ghost" id="previewBulk">معاينة</button>
-          <button class="primary" id="importBulk" disabled>استيراد الطلاب</button>
-          <span id="bulkStatus" class="muted"></span>
-        </div>
-        <div id="bulkPreviewWrap" class="hide" style="margin-top:10px; overflow:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>ID</th><th>الاسم</th><th>الفصل</th>
-                <th>Hw</th><th>Classwork</th><th>Activity</th>
-                <th>Research</th><th>Theoretical</th><th>Practical</th>
-                <th>Absence</th><th>Notes</th>
-              </tr>
-            </thead>
-            <tbody id="bulkTbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- إدخال سريع للدرجات (تحديث) -->
-      <div class="card no-print">
-        <h3>لوحة إدخال سريع للدرجات</h3>
-        <div class="row">
-          <input id="padClass" placeholder="اكتب رقم الفصل ثم تحميل (مثال: 105)" />
-          <button class="ghost" id="loadPadBtn">تحميل طلاب الفصل</button>
-          <button class="primary" id="savePadBtn" disabled>حفظ الدرجات المعدّلة</button>
-          <span id="padStatus" class="muted"></span>
-        </div>
-        <div class="hint">نصائح: ↑↓ لزيادة/نقصان 1 — Enter/Tab للانتقال — الصفوف المعدّلة يحيطها إطار أخضر.</div>
-
-        <div class="grid" style="margin-top:10px;">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>ID</th><th>الاسم</th>
-                <th>Hw</th><th>Classwork</th><th>Activity</th>
-                <th>Research</th><th>Theoretical</th><th>Practical</th>
-                <th>Absence</th><th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="padBody"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:16px">لصق درجات (تحديث حسب ID)</h4>
-        <p class="hint">ترتيب الأعمدة المقبول: <b>ID, Hw, Classwork, Activity, Research, Theoretical, Practical, Absence, Notes</b></p>
-        <textarea id="gradesPaste" placeholder="مثال:
-123456789	10	5	3	2	18	17	0	ملاحظة
-..."></textarea>
-        <div class="row" style="margin-top:8px">
-          <button class="ghost" id="previewGradesBtn">معاينة التحديث</button>
-          <button class="primary" id="applyGradesBtn" disabled>تطبيق التحديث</button>
-          <span id="gradesStatus" class="muted"></span>
-        </div>
-        <div id="gradesPreviewWrap" class="hide" style="margin-top:10px; overflow:auto;">
-          <table>
-            <thead>
-              <tr><th>#</th><th>ID</th><th>Hw</th><th>Classwork</th><th>Activity</th><th>Research</th><th>Theoretical</th><th>Practical</th><th>Absence</th><th>Notes</th></tr>
-            </thead>
-            <tbody id="gradesTbody"></tbody>
-          </table>
         </div>
       </div>
 
@@ -194,6 +112,8 @@
               <th>ID</th>
               <th>الاسم</th>
               <th>الفصل</th>
+              <!-- جديد: عمود نقل -->
+              <th class="no-print">نقل للفصل</th>
               <th>Hw</th>
               <th>Classwork</th>
               <th>Activity</th>
@@ -216,9 +136,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك (تأكد أن القيم تطابق مشروعك) */
+    /* إعدادات مشروعك (نفس اللي استخدمتها سابقًا) */
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -228,71 +148,34 @@
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
 
-    /* أدوات مساعدة عامة */
+    /* Init */
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    /* Helpers */
     const $   = (id)=>document.getElementById(id);
     const num = (v)=>Number(v||0);
     const coll= new Intl.Collator('ar');
     const norm= (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
 
-    /* تحقق من النطاق */
-    if (location.hostname !== "mjeed119.github.io") {
-      const m = $("loginMsg");
-      if (m) m.textContent = "⚠️ افتح الصفحة من mjeed119.github.io (GitHub Pages) أو أضف نطاقك في Authorized domains.";
-    }
-
-    /* Init Firebase */
-    let app, auth, db;
-    try{
-      app  = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db   = getFirestore(app);
-    } catch(e){
-      const m = $("loginMsg"); if(m) m.textContent = "❌ مشكلة في تهيئة Firebase (تحقق من config).";
-      console.error(e);
-    }
-
-    /* ====== مصادقة ====== */
+    /* Auth */
     onAuthStateChanged(auth,(user)=>{
       $("loginView").classList.toggle("hide", !!user);
       $("panelView").classList.toggle("hide", !user);
       if(user){ $("who").textContent=user.email||"—"; loadStudents(); }
     });
-
     $("loginBtn").onclick = async()=>{
       $("loginMsg").textContent="";
-      const email = $("email").value.trim();
-      const pass  = $("password").value.trim();
-      if(!email || !pass){ $("loginMsg").textContent = "📝 اكتب البريد وكلمة المرور."; return; }
-      try{
-        await signInWithEmailAndPassword(auth, email, pass);
-      }catch(err){
-        let msg = "❌ فشل تسجيل الدخول. ";
-        if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") msg += "تأكد من كلمة المرور.";
-        else if (err.code === "auth/user-not-found") msg += "الحساب غير موجود.";
-        else if (err.code === "auth/too-many-requests") msg += "محاولات كثيرة. جرّب لاحقًا.";
-        else if (err.code === "auth/network-request-failed") msg += "مشكلة شبكة.";
-        else if (err.code === "auth/operation-not-allowed") msg += "فعّل Email/Password من Authentication.";
-        else msg += err.code || "خطأ غير معروف.";
-        $("loginMsg").textContent = msg;
-        console.error(err);
-      }
+      try{ await signInWithEmailAndPassword(auth, $("email").value, $("password").value); }
+      catch(e){ $("loginMsg").textContent="❌ خطأ في تسجيل الدخول"; console.error(e); }
     };
-    $("logoutBtn").onclick = async()=>{ try{ await signOut(auth); }catch(e){ console.error(e); } };
+    $("logoutBtn").onclick = async()=>{ await signOut(auth); };
 
-    /* ====== CRUD فردي ====== */
+    /* === إضافة/تحديث طالب يدوي === */
     $("saveBtn").onclick = saveStudent;
     $("clearBtn").onclick = clearForm;
-
-    async function saveStudent(){
-      const id = norm($("st_id").value);
-      if(!id){ alert("أدخل Document ID"); return; }
-      const data = collectStudentForm();
-      await setDoc(doc(db,"students",id), data, {merge:true});
-      alert("✅ تم الحفظ");
-      clearForm();
-      loadStudents(id); // ابقَ على نفس السطر
-    }
 
     function collectStudentForm(){
       const data = {
@@ -312,13 +195,28 @@
       return data;
     }
 
+    async function saveStudent(){
+      const id = norm($("st_id").value);
+      if(!id){ alert("أدخل Document ID"); return; }
+      const data = collectStudentForm();
+      await setDoc(doc(db,"students",id), data, {merge:true});
+      alert("✅ تم الحفظ");
+      clearForm();
+      loadStudents(id);
+    }
+
+    function clearForm(){
+      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(id => $(id).value="");
+    }
+
+    /* === CRUD من الجدول === */
     window.deleteStudent = async(id)=>{
       if(!confirm("حذف الطالب؟")) return;
       await deleteDoc(doc(db,"students",id));
       loadStudents();
     };
 
-    // تعديل مباشر داخل الخلية (الجدول السفلي)
+    // تعديل مباشر داخل الخلية
     window.edit = async(id, field, td)=>{
       const ref = doc(db,"students",id);
       const snap = await getDoc(ref);
@@ -330,7 +228,7 @@
       loadStudents(id);
     };
 
-    // أسهم زيادة/نقصان (يشمل الغياب)
+    // أسهم زيادة/نقصان
     window.bump = async(id, field, delta)=>{
       const ref = doc(db,"students",id);
       const snap = await getDoc(ref);
@@ -342,8 +240,27 @@
       loadStudents(id);
     };
 
-    /* ====== عرض القائمة الأساسية ====== */
-    $("filterClass").addEventListener("change", ()=> loadStudents());
+    /* === نقل الطالب لفصل آخر === */
+    window.moveClass = async (id) => {
+      const sel = document.getElementById('mv-'+id);
+      const manual = document.getElementById('mvtext-'+id);
+      const newClass = (manual?.value || sel?.value || '').trim();
+      if(!newClass){ alert('اختر فصلًا من القائمة أو اكتب فصلًا جديدًا'); return; }
+
+      const ref = doc(db, 'students', id);
+      const snap = await getDoc(ref);
+      if(!snap.exists()){
+        alert('الطالب غير موجود');
+        return;
+      }
+      await setDoc(ref, { Class: newClass }, { merge: true });
+
+      if (manual) manual.value = '';
+      loadStudents(id);
+    };
+
+    /* === عرض القائمة (فلترة + بحث + بناء قوائم الفصول) === */
+    $("filterClass").addEventListener("input", ()=> loadStudents());
     $("searchInput").addEventListener("input", ()=> loadStudents());
     $("refreshBtn").addEventListener("click", ()=> loadStudents());
     $("printBtn").addEventListener("click", ()=> window.print());
@@ -351,7 +268,7 @@
     async function loadStudents(focusId){
       const klass  = $("filterClass").value.trim();
       const search = norm($("searchInput").value);
-      $("studentsBody").innerHTML = "<tr><td colspan='13'>جاري التحميل…</td></tr>";
+      $("studentsBody").innerHTML = "<tr><td colspan='14'>جاري التحميل…</td></tr>";
 
       const base = collection(db,"students");
       const qy   = klass ? query(base, where("Class","==",klass)) : base;
@@ -368,11 +285,30 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
+      // استخرج قائمة الفصول من النتائج المعروضة
+      const classSet = new Set();
+      arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
+      const classList = Array.from(classSet).sort(coll.compare);
+      const classOptionsHTML = (current) =>
+        ['<option value="">— اختر —</option>']
+          .concat(classList.map(c => `<option value="${c}" ${String(current)===String(c)?'selected':''}>${c}</option>`))
+          .join('');
+
       const rows = arr.map(s => `
         <tr id="row-${s.id}">
           <td class="pill">${s.id}</td>
           <td>${s.Name||""}</td>
           <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
+
+          <!-- عمود نقل للفصل -->
+          <td class="no-print" style="min-width:220px;display:flex;gap:6px;align-items:center;justify-content:center">
+            <select id="mv-${s.id}" style="width:110px">
+              ${classOptionsHTML(s.Class||"")}
+            </select>
+            <input id="mvtext-${s.id}" placeholder="أو اكتب فصل جديد" style="width:120px" />
+            <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
+          </td>
+
           <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
           <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
           <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
@@ -385,364 +321,36 @@
           <td class="tools no-print">
             <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
             <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Research',1)">+ بحث</button>
             <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
             <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Practical',1)">+ عملي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Absence',1)">+ غياب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
+
             <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
           </td>
         </tr>
       `);
 
-      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="13">لا يوجد نتائج</td></tr>`;
+      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="14">لا يوجد نتائج</td></tr>`;
 
       if(focusId){
         const row = $("row-"+focusId);
         if(row) row.scrollIntoView({behavior:"smooth", block:"center"});
       }
-    }
-    // إتاحتها للـ onAuthStateChanged (لو احتاج يناديها)
-    window.loadStudents = loadStudents;
-
-    function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(id => $(id).value="");
-    }
-
-    /* ===================== الاستيراد الجماعي للطلاب ===================== */
-    $("previewBulk").onclick = ()=> previewBulk();
-    $("importBulk").onclick  = ()=> importBulk();
-
-    function splitLine(line){
-      if(line.includes("\t")) return line.split("\t");
-      if(line.includes(","))  return line.split(",");
-      return line.trim().split(/\s{2,}/);
-    }
-
-    function parseBulkText(txt){
-      const out = [];
-      const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-      if(lines.length && /id|name|class/i.test(lines[0])) lines.shift();
-
-      for (const ln of lines){
-        const parts = splitLine(ln).map(s=>s.trim());
-        if(parts.length < 3) continue;
-
-        const id    = parts[0];
-        const name  = parts[1];
-        const klass = parts[2];
-
-        const hw   = num(parts[3]);
-        const cw   = num(parts[4]);
-        const act  = num(parts[5]);
-        const res  = num(parts[6]);
-        const th   = num(parts[7]);
-        const pr   = num(parts[8]);
-        const abs  = num(parts[9]);
-        const note = parts[10] || "";
-
-        const row = {
-          id: id, Name: name, Class: klass,
-          Hw: hw||0, Classwork: cw||0, Activity: act||0,
-          Research: res||0, Theoretical: th||0, Practical: pr||0,
-          Absence: abs||0, Notes: note
-        };
-        row.Total = computeTotal(row.Hw,row.Classwork,row.Activity,row.Research,row.Theoretical,row.Practical);
-        out.push(row);
-      }
-      return out;
-    }
-
-    function previewBulk(){
-      const txt = $("bulkInput").value;
-      const rows = parseBulkText(txt);
-      const tbody = $("bulkTbody");
-      tbody.innerHTML = "";
-
-      if(!rows.length){
-        $("bulkStatus").innerHTML = "<span class='err'>لا توجد صفوف صالحة. تأكد من أن كل سطر يحتوي ID وName وClass على الأقل.</span>";
-        $("bulkPreviewWrap").classList.add("hide");
-        $("importBulk").disabled = true;
-        return;
-      }
-
-      rows.forEach((r,i)=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML =
-          "<td>"+(i+1)+"</td>"+
-          "<td>"+r.id+"</td>"+
-          "<td>"+(r.Name||"")+"</td>"+
-          "<td>"+(r.Class||"")+"</td>"+
-          "<td>"+r.Hw+"</td>"+
-          "<td>"+r.Classwork+"</td>"+
-          "<td>"+r.Activity+"</td>"+
-          "<td>"+r.Research+"</td>"+
-          "<td>"+r.Theoretical+"</td>"+
-          "<td>"+r.Practical+"</td>"+
-          "<td>"+r.Absence+"</td>"+
-          "<td>"+(r.Notes||"")+"</td>";
-        tbody.appendChild(tr);
-      });
-
-      $("bulkStatus").innerHTML = "<span class='ok-chip'>عدد الصفوف الصالحة: "+rows.length+"</span>";
-      $("bulkPreviewWrap").classList.remove("hide");
-      $("importBulk").disabled = false;
-      $("importBulk").dataset.rows = JSON.stringify(rows);
-    }
-
-    async function importBulk(){
-      const stored = $("importBulk").dataset.rows;
-      if(!stored){ alert("اعمل معاينة أولاً."); return; }
-      const rows = JSON.parse(stored);
-      if(!rows.length) return;
-
-      const chunkSize = 400;
-      let imported = 0;
-
-      for(let i=0; i<rows.length; i+=chunkSize){
-        const batch = writeBatch(db);
-        const chunk = rows.slice(i, i+chunkSize);
-        chunk.forEach(r=>{
-          const ref = doc(db,"students", String(r.id).trim().toLowerCase());
-          const payload = {
-            Name: r.Name||"",
-            Class: r.Class||"",
-            Hw: r.Hw||0, Classwork: r.Classwork||0, Activity: r.Activity||0,
-            Research: r.Research||0, Theoretical: r.Theoretical||0, Practical: r.Practical||0,
-            Absence: r.Absence||0, Notes: r.Notes||"",
-            Total: computeTotal(r.Hw,r.Classwork,r.Activity,r.Research,r.Theoretical,r.Practical)
-          };
-          batch.set(ref, payload, { merge:true });
-        });
-        await batch.commit();
-        imported += chunk.length;
-        $("bulkStatus").innerHTML = "تم الاستيراد جزئيًا… ("+imported+"/"+rows.length+")";
-      }
-
-      $("bulkStatus").innerHTML = "<span class='ok-chip'>تم الاستيراد النهائي ✓ ("+imported+" طالب)</span>";
-      $("importBulk").disabled = true;
-      $("bulkPreviewWrap").classList.add("hide");
-      $("bulkInput").value = "";
-      loadStudents();
-    }
-
-    /* ===================== لوحة إدخال سريع للدرجات ===================== */
-    const changedRows = new Map(); // id -> payload جزئي
-    $("loadPadBtn").onclick  = ()=> loadQuickPad();
-    $("savePadBtn").onclick  = ()=> saveQuickPad();
-    $("previewGradesBtn").onclick = ()=> previewGradesPaste();
-    $("applyGradesBtn").onclick   = ()=> applyGradesPaste();
-
-    async function loadQuickPad(){
-      const klass = $("padClass").value.trim();
-      if(!klass){ alert("اكتب رقم الفصل ثم اضغط تحميل"); return; }
-      $("padStatus").textContent = "جاري التحميل…";
-      $("padBody").innerHTML = "";
-
-      const base = collection(db,"students");
-      const qs = await getDocs(query(base, where("Class","==",klass)));
-      let arr = [];
-      qs.forEach(d=>{ const s=d.data(); s.id=d.id; arr.push(s); });
-      arr.sort((a,b)=> coll.compare(a.Name||"", b.Name||""));
-
-      if(!arr.length){
-        $("padStatus").textContent = "لا يوجد طلاب في هذا الفصل.";
-        $("savePadBtn").disabled = true;
-        return;
-      }
-
-      const rows = arr.map((s,i)=> {
-        const rid = `r-${s.id}`;
-        return `
-          <tr id="${rid}">
-            <td>${i+1}</td>
-            <td>${s.id}</td>
-            <td style="text-align:right">${s.Name||""}</td>
-            ${numInput(s.id,"Hw",s.Hw)}
-            ${numInput(s.id,"Classwork",s.Classwork)}
-            ${numInput(s.id,"Activity",s.Activity)}
-            ${numInput(s.id,"Research",s.Research)}
-            ${numInput(s.id,"Theoretical",s.Theoretical)}
-            ${numInput(s.id,"Practical",s.Practical)}
-            ${numInput(s.id,"Absence",s.Absence)}
-            <td><span id="tot-${s.id}">${num(s.Total)}</span></td>
-          </tr>
-        `;
-      }).join("");
-
-      $("padBody").innerHTML = rows;
-      $("padStatus").innerHTML = `<span class="badge">تم تحميل ${arr.length} طالب</span>`;
-      $("savePadBtn").disabled = true;
-
-      // أحداث لوحة المفاتيح والتغييرات
-      $("padBody").querySelectorAll("input[type=number]").forEach(inp=>{
-        inp.addEventListener("keydown", e=>{
-          if(e.key==="ArrowUp"){ e.preventDefault(); inp.stepUp(); inp.dispatchEvent(new Event("input")); }
-          if(e.key==="ArrowDown"){ e.preventDefault(); inp.stepDown(); inp.dispatchEvent(new Event("input")); }
-          if(e.key==="Enter"){ e.preventDefault(); focusNext(inp); }
-        });
-        inp.addEventListener("input", ()=> markDirty(inp));
-        inp.addEventListener("blur",  ()=> markDirty(inp));
-      });
-    }
-
-    function numInput(id, field, value){
-      const v = Number(value||0);
-      return `<td><input type="number" data-id="${id}" data-field="${field}" value="${v}" /></td>`;
-    }
-
-    function focusNext(inp){
-      const nodes = Array.from(document.querySelectorAll("#padBody input[type=number]"));
-      const idx = nodes.indexOf(inp);
-      if(idx>=0 && idx<nodes.length-1){ nodes[idx+1].focus(); nodes[idx+1].select(); }
-    }
-
-    function markDirty(inp){
-      const id = inp.dataset.id, field = inp.dataset.field;
-      const tr = inp.closest("tr");
-      tr.classList.add("dirty");
-
-      const v = num(inp.value);
-      const prev = changedRows.get(id) || {};
-      prev[field] = v;
-      changedRows.set(id, prev);
-
-      // حدّث الـ Total على الطاير
-      const rowInputs = tr.querySelectorAll("input[type=number]");
-      const vals = {};
-      rowInputs.forEach(el=> vals[el.dataset.field] = num(el.value));
-      const total = computeTotal(vals.Hw, vals.Classwork, vals.Activity, vals.Research, vals.Theoretical, vals.Practical);
-      const totEl = document.getElementById("tot-"+id); if(totEl) totEl.textContent = total;
-
-      document.getElementById("savePadBtn").disabled = changedRows.size===0;
-      document.getElementById("padStatus").textContent = `صفوف معدّلة: ${changedRows.size}`;
-    }
-
-    async function saveQuickPad(){
-      if(changedRows.size===0) return;
-      document.getElementById("savePadBtn").disabled = true;
-      document.getElementById("padStatus").textContent = "جارٍ الحفظ…";
-
-      const batch = writeBatch(db);
-      for (const [id, partial] of changedRows.entries()){
-        const ref = doc(db,"students",id);
-        const snap = await getDoc(ref);
-        if(!snap.exists()) continue;
-        const cur = snap.data();
-
-        const merged = {
-          Hw: num(partial.Hw ?? cur.Hw),
-          Classwork: num(partial.Classwork ?? cur.Classwork),
-          Activity: num(partial.Activity ?? cur.Activity),
-          Research: num(partial.Research ?? cur.Research),
-          Theoretical: num(partial.Theoretical ?? cur.Theoretical),
-          Practical: num(partial.Practical ?? cur.Practical),
-          Absence: num(partial.Absence ?? cur.Absence),
-        };
-        const payload = { ...merged, Total: computeTotal(merged.Hw,merged.Classwork,merged.Activity,merged.Research,merged.Theoretical,merged.Practical) };
-        batch.set(ref, payload, { merge:true });
-      }
-      await batch.commit();
-
-      const count = changedRows.size;
-      changedRows.clear();
-      document.getElementById("padStatus").innerHTML = `<span class="ok-chip">تم حفظ ${count} صف ✓</span>`;
-      document.getElementById("savePadBtn").disabled = true;
-      loadStudents();
-    }
-
-    /* ====== لصق درجات للتحديث حسب ID ====== */
-    document.getElementById("previewGradesBtn").onclick = previewGradesPaste;
-    document.getElementById("applyGradesBtn").onclick   = applyGradesPaste;
-
-    function parseGradesPaste(txt){
-      const out = [];
-      const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-      if(lines.length && /id/i.test(lines[0])) lines.shift();
-      for(const ln of lines){
-        const p = splitLine(ln).map(s=>s.trim());
-        if(p.length<2) continue;
-        const obj = {
-          id: String(p[0]).trim().toLowerCase(),
-          Hw: num(p[1]), Classwork: num(p[2]), Activity: num(p[3]),
-          Research: num(p[4]), Theoretical: num(p[5]), Practical: num(p[6]),
-          Absence: num(p[7]), Notes: p[8]||""
-        };
-        out.push(obj);
-      }
-      return out;
-    }
-
-    function previewGradesPaste(){
-      const rows = parseGradesPaste(document.getElementById("gradesPaste").value);
-      const tb = document.getElementById("gradesTbody"); tb.innerHTML = "";
-      if(!rows.length){
-        document.getElementById("gradesStatus").innerHTML = "<span class='err'>لا توجد صفوف صالحة.</span>";
-        document.getElementById("gradesPreviewWrap").classList.add("hide");
-        document.getElementById("applyGradesBtn").disabled = true;
-        return;
-      }
-      rows.forEach((r,i)=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${i+1}</td><td>${r.id}</td>
-          <td>${r.Hw||0}</td><td>${r.Classwork||0}</td><td>${r.Activity||0}</td>
-          <td>${r.Research||0}</td><td>${r.Theoretical||0}</td><td>${r.Practical||0}</td>
-          <td>${r.Absence||0}</td><td>${r.Notes||""}</td>`;
-        tb.appendChild(tr);
-      });
-      document.getElementById("gradesStatus").innerHTML = "<span class='ok-chip'>عدد الصفوف: "+rows.length+"</span>";
-      document.getElementById("gradesPreviewWrap").classList.remove("hide");
-      document.getElementById("applyGradesBtn").disabled = false;
-      document.getElementById("applyGradesBtn").dataset.rows = JSON.stringify(rows);
-    }
-
-    async function applyGradesPaste(){
-      const stored = document.getElementById("applyGradesBtn").dataset.rows;
-      if(!stored){ alert("اعمل معاينة أولاً."); return; }
-      const rows = JSON.parse(stored);
-      if(!rows.length) return;
-
-      const chunkSize = 400;
-      let updated = 0;
-      for(let i=0;i<rows.length;i+=chunkSize){
-        const batch = writeBatch(db);
-        const chunk = rows.slice(i,i+chunkSize);
-
-        for(const r of chunk){
-          const ref = doc(db,"students", r.id);
-          const snap = await getDoc(ref);
-          if(!snap.exists()) continue;
-          const cur = snap.data();
-          const merged = {
-            Hw: isNaN(r.Hw)?cur.Hw:num(r.Hw),
-            Classwork: isNaN(r.Classwork)?cur.Classwork:num(r.Classwork),
-            Activity: isNaN(r.Activity)?cur.Activity:num(r.Activity),
-            Research: isNaN(r.Research)?cur.Research:num(r.Research),
-            Theoretical: isNaN(r.Theoretical)?cur.Theoretical:num(r.Theoretical),
-            Practical: isNaN(r.Practical)?cur.Practical:num(r.Practical),
-            Absence: isNaN(r.Absence)?cur.Absence:num(r.Absence),
-            Notes: r.Notes!==undefined ? r.Notes : (cur.Notes||"")
-          };
-          const payload = { ...merged, Total: computeTotal(merged.Hw,merged.Classwork,merged.Activity,merged.Research,merged.Theoretical,merged.Practical) };
-          batch.set(ref, payload, { merge:true });
-          updated++;
-        }
-        await batch.commit();
-        document.getElementById("gradesStatus").textContent = `تم التحديث جزئيًا… (${updated}/${rows.length})`;
-      }
-
-      document.getElementById("gradesStatus").innerHTML = `<span class="ok-chip">تمت عملية التحديث ✓ (${updated} صف)</span>`;
-      document.getElementById("applyGradesBtn").disabled = true;
-      document.getElementById("gradesPreviewWrap").classList.add("hide");
-      document.getElementById("gradesPaste").value = "";
-      loadStudents();
     }
   </script>
 </body>
