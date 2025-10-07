@@ -27,6 +27,14 @@
   .mini{padding:6px 8px;border-radius:8px;font-size:12px}
   .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457}
   .hide{display:none}
+  .no-print{ }
+  @media print{
+    body{background:#fff;color:#000}
+    .no-print{display:none !important}
+    .card{border:none;box-shadow:none}
+    th,td{border:1px solid #000}
+    .tools{display:none}
+  }
 </style>
 
 <script type="module">
@@ -34,7 +42,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDocs, deleteDoc, collection, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-// إعدادات Firebase
+/* Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
   authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -43,26 +51,27 @@ const firebaseConfig = {
   messagingSenderId: "279588301357",
   appId: "1:279588301357:web:37f0ad440810aed4a166a4"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* Helpers */
 const num = v => Number(v || 0);
-const computeTotal = (hw, cw, act, res, th, pr) => num(hw)+num(cw)+num(act)+num(res)+num(th)+num(pr);
+const computeTotal = (hw,cw,act,res,th,pr) => num(hw)+num(cw)+num(act)+num(res)+num(th)+num(pr);
 
+/* Auth */
 onAuthStateChanged(auth, user=>{
   document.getElementById("loginView").classList.toggle("hide", !!user);
   document.getElementById("panelView").classList.toggle("hide", !user);
   if(user){ document.getElementById("who").textContent=user.email; loadStudents(); }
 });
-
 window.login = async()=>{
   try{ await signInWithEmailAndPassword(auth, email.value, password.value); }
   catch(e){ loginMsg.textContent="❌ خطأ في تسجيل الدخول"; console.error(e); }
 };
 window.logout = async()=>{ await signOut(auth); };
 
+/* CRUD */
 window.saveStudent = async()=>{
   const id=st_id.value.trim();
   if(!id) return alert("أدخل رقم الهوية أو المعرف");
@@ -70,67 +79,39 @@ window.saveStudent = async()=>{
     Name:st_name.value.trim(),
     Nid_hash:st_nid.value.trim(),
     Class:st_class.value.trim(),
-    Hw:num(st_hw.value),Classwork:num(st_classwork.value),Activity:num(st_activity.value),
-    Research:num(st_research.value),Theoretical:num(st_theoretical.value),Practical:num(st_practical.value),
-    Absence:num(st_absence.value),Notes:st_notes.value.trim()
+    Hw:num(st_hw.value),
+    Classwork:num(st_classwork.value),
+    Activity:num(st_activity.value),
+    Research:num(st_research.value),
+    Theoretical:num(st_theoretical.value),
+    Practical:num(st_practical.value),
+    Absence:num(st_absence.value),
+    Notes:st_notes.value.trim()
   };
   data.Total=computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
   await setDoc(doc(db,"students",id),data,{merge:true});
   alert("✅ تم الحفظ");
-  clearForm(); loadStudents();
+  clearForm(); loadStudents(id); /* نحافظ على نفس السطر */
 };
 
 window.deleteStudent=async(id)=>{
   if(confirm("هل تريد حذف هذا الطالب؟")){ await deleteDoc(doc(db,"students",id)); loadStudents(); }
 };
 
+/* زيادة/نقصان لأي بند (أضفنا الغياب أيضاً) */
 window.bump=async(id,field,delta)=>{
   const q=doc(db,"students",id);
   const snap=await getDocs(query(collection(db,"students"),where("__name__","==",id)));
   snap.forEach(async s=>{
-    const d=s.data(); d[field]=num(d[field])+delta;
+    const d=s.data();
+    d[field]=num(d[field])+delta;
     d.Total=computeTotal(d.Hw,d.Classwork,d.Activity,d.Research,d.Theoretical,d.Practical);
     await setDoc(q,d);
   });
-  loadStudents(id); // يحافظ على نفس الطالب بعد التحديث
+  loadStudents(id);
 };
 
-async function loadStudents(focusId){
-  const f=filterClass.value.trim(), search=searchInput.value.trim();
-  studentsBody.innerHTML="<tr><td colspan='13'>جاري التحميل...</td></tr>";
-  const qRef=collection(db,"students");
-  const qy=f?query(qRef,where("Class","==",f)):qRef;
-  const qs=await getDocs(qy);
-  let arr=[]; qs.forEach(s=>{const d=s.data(); d.id=s.id; arr.push(d);});
-  const coll=new Intl.Collator("ar"); arr.sort((a,b)=>coll.compare(a.Name||"",b.Name||""));
-  if(search) arr=arr.filter(s=> (s.Name||"").includes(search));
-  let html="";
-  arr.forEach(s=>{
-    html+=`
-    <tr id="row-${s.id}">
-      <td class="pill">${s.id}</td>
-      <td>${s.Name||""}</td>
-      <td>${s.Class||""}</td>
-      <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
-      <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
-      <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
-      <td contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
-      <td contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
-      <td contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
-      <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
-      <td><strong>${num(s.Total)}</strong></td>
-      <td>${s.Notes||""}</td>
-      <td class="tools">
-        <button class="mini ok" onclick="bump('${s.id}','Hw',1)">+ واجب</button>
-        <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
-        <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
-      </td>
-    </tr>`;
-  });
-  studentsBody.innerHTML=html||"<tr><td colspan='13'>لا يوجد طلاب</td></tr>";
-  if(focusId) document.getElementById("row-"+focusId)?.scrollIntoView({behavior:"smooth"});
-}
-
+/* تعديل مباشر داخل الجدول */
 window.edit=async(id,field,td)=>{
   const val=num(td.textContent.trim());
   const ref=doc(db,"students",id);
@@ -143,34 +124,82 @@ window.edit=async(id,field,td)=>{
   loadStudents(id);
 };
 
-function clearForm(){
-  ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(i=>document.getElementById(i).value="");
+/* تحميل الجدول مع ترتيب هجائي + بحث */
+async function loadStudents(focusId){
+  const f=filterClass.value.trim(), search=searchInput.value.trim();
+  studentsBody.innerHTML="<tr><td colspan='13'>جاري التحميل...</td></tr>";
+  const qRef=collection(db,"students");
+  const qy=f?query(qRef,where("Class","==",f)):qRef;
+  const qs=await getDocs(qy);
+  let arr=[]; qs.forEach(s=>{const d=s.data(); d.id=s.id; arr.push(d);});
+  const coll=new Intl.Collator("ar"); arr.sort((a,b)=>coll.compare(a.Name||"",b.Name||""));
+  if(search) arr=arr.filter(s=> (s.Name||"").includes(search));
+
+  let html="";
+  for (let i=0;i<arr.length;i++){
+    const s=arr[i];
+    html += "<tr id='row-"+s.id+"'>"
+      + "<td class='pill'>"+s.id+"</td>"
+      + "<td>"+(s.Name||"")+"</td>"
+      + "<td>"+(s.Class||"")+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Hw',this)\">"+num(s.Hw)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Classwork',this)\">"+num(s.Classwork)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Activity',this)\">"+num(s.Activity)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Research',this)\">"+num(s.Research)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Theoretical',this)\">"+num(s.Theoretical)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Practical',this)\">"+num(s.Practical)+"</td>"
+      + "<td contenteditable onblur=\"edit('"+s.id+"','Absence',this)\">"+num(s.Absence)+"</td>"
+      + "<td><strong>"+num(s.Total)+"</strong></td>"
+      + "<td>"+(s.Notes||"")+"</td>"
+      + "<td class='tools'>"
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Hw',1)\">+ واجب</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Hw',-1)\">- واجب</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Classwork',1)\">+ صفي</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Classwork',-1)\">- صفي</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Activity',1)\">+ نشاط</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Activity',-1)\">- نشاط</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Research',1)\">+ بحث</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Research',-1)\">- بحث</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Theoretical',1)\">+ نظري</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Theoretical',-1)\">- نظري</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Practical',1)\">+ عملي</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Practical',-1)\">- عملي</button>"
+
+        + "<button class='mini ok' onclick=\"bump('"+s.id+"','Absence',1)\">+ غياب</button>"
+        + "<button class='mini ghost' onclick=\"bump('"+s.id+"','Absence',-1)\">- غياب</button>"
+
+        + "<button class='mini danger' onclick=\"deleteStudent('"+s.id+"')\">حذف</button>"
+      + "</td>"
+    + "</tr>";
+  }
+  studentsBody.innerHTML = html || "<tr><td colspan='13'>لا يوجد طلاب</td></tr>";
+  if(focusId){ const row=document.getElementById("row-"+focusId); if(row) row.scrollIntoView({behavior:"smooth"}); }
 }
 
-window.exportExcel=()=>{
-  const table=document.getElementById("studentsBody");
-  let csv="ID,Name,Class,Hw,Classwork,Activity,Research,Theoretical,Practical,Absence,Total,Notes\n";
-  table.querySelectorAll("tr").forEach(tr=>{
-    const cells=[...tr.querySelectorAll("td")].map(td=>td.innerText.replace(/,/g," "));
-    csv+=cells.join(",")+"\n";
-  });
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`grades_${filterClass.value||"all"}.csv`;
-  a.click();
-};
+/* UI helpers */
+function clearForm(){
+  var ids=["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"];
+  for(var i=0;i<ids.length;i++){ document.getElementById(ids[i]).value=""; }
+}
+
+/* طباعة */
+window.printTable = ()=>{ window.print(); };
 </script>
 </head>
 
 <body>
-<header>
+<header class="no-print">
   <h1>لوحة المشرف</h1>
   <div><span id="who">—</span> <button class="ghost" onclick="logout()">تسجيل الخروج</button></div>
 </header>
 
 <main>
-<section id="loginView" class="card">
+<section id="loginView" class="card no-print">
   <h3>تسجيل الدخول</h3>
   <div class="row">
     <input id="email" type="email" placeholder="البريد الإلكتروني">
@@ -180,7 +209,7 @@ window.exportExcel=()=>{
   <p id="loginMsg" class="muted"></p>
 </section>
 
-<section id="panelView" class="card hide">
+<section id="panelView" class="card hide no-print">
   <h3>إضافة / تحديث طالب</h3>
   <div class="row">
     <input id="st_id" placeholder="Document ID">
@@ -203,24 +232,26 @@ window.exportExcel=()=>{
   <button class="ok" onclick="saveStudent()">حفظ</button>
 </section>
 
-<section class="card">
+<section class="card no-print">
   <div class="row">
     <input id="filterClass" placeholder="فلترة بالفصل (مثال: 105)">
     <input id="searchInput" placeholder="بحث عن طالب">
     <button class="ghost" onclick="loadStudents()">تطبيق</button>
-    <button class="primary" onclick="exportExcel()">تصدير إلى Excel</button>
+    <button class="primary" onclick="printTable()">طباعة الكشف</button>
   </div>
 </section>
 
 <section class="card" style="overflow:auto">
   <h3>قائمة الطلاب</h3>
-  <table><thead>
-    <tr>
-      <th>ID</th><th>الاسم</th><th>الفصل</th>
-      <th>Hw</th><th>Classwork</th><th>Activity</th>
-      <th>Research</th><th>Theoretical</th><th>Practical</th>
-      <th>الغياب</th><th>المجموع</th><th>ملاحظات</th><th>إجراءات</th>
-    </tr></thead>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>الاسم</th><th>الفصل</th>
+        <th>Hw</th><th>Classwork</th><th>Activity</th>
+        <th>Research</th><th>Theoretical</th><th>Practical</th>
+        <th>الغياب</th><th>المجموع</th><th>ملاحظات</th><th class="no-print">إجراءات</th>
+      </tr>
+    </thead>
     <tbody id="studentsBody"></tbody>
   </table>
 </section>
