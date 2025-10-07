@@ -31,7 +31,7 @@
     .hide{display:none}
     a.link{color:#8fb6ff;text-decoration:none}
     .mini{padding:6px 10px;border-radius:8px}
-    .no-print{ }
+   
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
       body{ background:#fff; color:#000; }
@@ -102,7 +102,7 @@
         </div>
       </div>
 
-      <!-- استيراد جماعي طلاب (إضافة) -->
+      <!-- استيراد جماعي طلاب (إضافة/دمج) -->
       <div class="card no-print">
         <h3>استيراد جماعي للطلاب (إنشاء/دمج)</h3>
         <p class="hint">
@@ -218,7 +218,7 @@
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك */
+    /* إعدادات مشروعك (تأكد أن القيم تطابق مشروعك) */
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -228,32 +228,59 @@
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
 
-    /* Init */
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-
-    /* Helpers */
+    /* أدوات مساعدة عامة */
     const $   = (id)=>document.getElementById(id);
     const num = (v)=>Number(v||0);
     const coll= new Intl.Collator('ar');
     const norm= (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
 
-    /* Auth */
+    /* تحقق من النطاق */
+    if (location.hostname !== "mjeed119.github.io") {
+      const m = $("loginMsg");
+      if (m) m.textContent = "⚠️ افتح الصفحة من mjeed119.github.io (GitHub Pages) أو أضف نطاقك في Authorized domains.";
+    }
+
+    /* Init Firebase */
+    let app, auth, db;
+    try{
+      app  = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db   = getFirestore(app);
+    } catch(e){
+      const m = $("loginMsg"); if(m) m.textContent = "❌ مشكلة في تهيئة Firebase (تحقق من config).";
+      console.error(e);
+    }
+
+    /* ====== مصادقة ====== */
     onAuthStateChanged(auth,(user)=>{
       $("loginView").classList.toggle("hide", !!user);
       $("panelView").classList.toggle("hide", !user);
       if(user){ $("who").textContent=user.email||"—"; loadStudents(); }
     });
+
     $("loginBtn").onclick = async()=>{
       $("loginMsg").textContent="";
-      try{ await signInWithEmailAndPassword(auth, $("email").value, $("password").value); }
-      catch(e){ $("loginMsg").textContent="❌ خطأ في تسجيل الدخول"; console.error(e); }
+      const email = $("email").value.trim();
+      const pass  = $("password").value.trim();
+      if(!email || !pass){ $("loginMsg").textContent = "📝 اكتب البريد وكلمة المرور."; return; }
+      try{
+        await signInWithEmailAndPassword(auth, email, pass);
+      }catch(err){
+        let msg = "❌ فشل تسجيل الدخول. ";
+        if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") msg += "تأكد من كلمة المرور.";
+        else if (err.code === "auth/user-not-found") msg += "الحساب غير موجود.";
+        else if (err.code === "auth/too-many-requests") msg += "محاولات كثيرة. جرّب لاحقًا.";
+        else if (err.code === "auth/network-request-failed") msg += "مشكلة شبكة.";
+        else if (err.code === "auth/operation-not-allowed") msg += "فعّل Email/Password من Authentication.";
+        else msg += err.code || "خطأ غير معروف.";
+        $("loginMsg").textContent = msg;
+        console.error(err);
+      }
     };
-    $("logoutBtn").onclick = async()=>{ await signOut(auth); };
+    $("logoutBtn").onclick = async()=>{ try{ await signOut(auth); }catch(e){ console.error(e); } };
 
-    /* ====== CRUD فردي قديم ====== */
+    /* ====== CRUD فردي ====== */
     $("saveBtn").onclick = saveStudent;
     $("clearBtn").onclick = clearForm;
 
@@ -303,7 +330,7 @@
       loadStudents(id);
     };
 
-    // أسهم زيادة/نقصان
+    // أسهم زيادة/نقصان (يشمل الغياب)
     window.bump = async(id, field, delta)=>{
       const ref = doc(db,"students",id);
       const snap = await getDoc(ref);
@@ -382,6 +409,8 @@
         if(row) row.scrollIntoView({behavior:"smooth", block:"center"});
       }
     }
+    // إتاحتها للـ onAuthStateChanged (لو احتاج يناديها)
+    window.loadStudents = loadStudents;
 
     function clearForm(){
       ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(id => $(id).value="");
@@ -570,7 +599,7 @@
     }
 
     function focusNext(inp){
-      const nodes = Array.from($("padBody").querySelectorAll("input[type=number]"));
+      const nodes = Array.from(document.querySelectorAll("#padBody input[type=number]"));
       const idx = nodes.indexOf(inp);
       if(idx>=0 && idx<nodes.length-1){ nodes[idx+1].focus(); nodes[idx+1].select(); }
     }
@@ -590,20 +619,19 @@
       const vals = {};
       rowInputs.forEach(el=> vals[el.dataset.field] = num(el.value));
       const total = computeTotal(vals.Hw, vals.Classwork, vals.Activity, vals.Research, vals.Theoretical, vals.Practical);
-      const totEl = $("tot-"+id); if(totEl) totEl.textContent = total;
+      const totEl = document.getElementById("tot-"+id); if(totEl) totEl.textContent = total;
 
-      $("savePadBtn").disabled = changedRows.size===0;
-      $("padStatus").textContent = `صفوف معدّلة: ${changedRows.size}`;
+      document.getElementById("savePadBtn").disabled = changedRows.size===0;
+      document.getElementById("padStatus").textContent = `صفوف معدّلة: ${changedRows.size}`;
     }
 
     async function saveQuickPad(){
       if(changedRows.size===0) return;
-      $("savePadBtn").disabled = true;
-      $("padStatus").textContent = "جارٍ الحفظ…";
+      document.getElementById("savePadBtn").disabled = true;
+      document.getElementById("padStatus").textContent = "جارٍ الحفظ…";
 
       const batch = writeBatch(db);
       for (const [id, partial] of changedRows.entries()){
-        // نحتاج لقراءة القيم الحالية لحساب التوتال بشكل صحيح
         const ref = doc(db,"students",id);
         const snap = await getDoc(ref);
         if(!snap.exists()) continue;
@@ -625,18 +653,14 @@
 
       const count = changedRows.size;
       changedRows.clear();
-      $("padStatus").innerHTML = `<span class="ok-chip">تم حفظ ${count} صف ✓</span>`;
-      $("savePadBtn").disabled = true;
-      // نحدّث الجدول الرئيسي لو مفتوح على نفس الفصل
+      document.getElementById("padStatus").innerHTML = `<span class="ok-chip">تم حفظ ${count} صف ✓</span>`;
+      document.getElementById("savePadBtn").disabled = true;
       loadStudents();
     }
 
     /* ====== لصق درجات للتحديث حسب ID ====== */
-    function splitLine(line){
-      if(line.includes("\t")) return line.split("\t");
-      if(line.includes(","))  return line.split(",");
-      return line.trim().split(/\s{2,}/);
-    }
+    document.getElementById("previewGradesBtn").onclick = previewGradesPaste;
+    document.getElementById("applyGradesBtn").onclick   = applyGradesPaste;
 
     function parseGradesPaste(txt){
       const out = [];
@@ -656,16 +680,13 @@
       return out;
     }
 
-    $("previewGradesBtn").onclick = previewGradesPaste;
-    $("applyGradesBtn").onclick   = applyGradesPaste;
-
     function previewGradesPaste(){
-      const rows = parseGradesPaste($("gradesPaste").value);
-      const tb = $("gradesTbody"); tb.innerHTML = "";
+      const rows = parseGradesPaste(document.getElementById("gradesPaste").value);
+      const tb = document.getElementById("gradesTbody"); tb.innerHTML = "";
       if(!rows.length){
-        $("gradesStatus").innerHTML = "<span class='err'>لا توجد صفوف صالحة.</span>";
-        $("gradesPreviewWrap").classList.add("hide");
-        $("applyGradesBtn").disabled = true;
+        document.getElementById("gradesStatus").innerHTML = "<span class='err'>لا توجد صفوف صالحة.</span>";
+        document.getElementById("gradesPreviewWrap").classList.add("hide");
+        document.getElementById("applyGradesBtn").disabled = true;
         return;
       }
       rows.forEach((r,i)=>{
@@ -676,26 +697,24 @@
           <td>${r.Absence||0}</td><td>${r.Notes||""}</td>`;
         tb.appendChild(tr);
       });
-      $("gradesStatus").innerHTML = "<span class='ok-chip'>عدد الصفوف: "+rows.length+"</span>";
-      $("gradesPreviewWrap").classList.remove("hide");
-      $("applyGradesBtn").disabled = false;
-      $("applyGradesBtn").dataset.rows = JSON.stringify(rows);
+      document.getElementById("gradesStatus").innerHTML = "<span class='ok-chip'>عدد الصفوف: "+rows.length+"</span>";
+      document.getElementById("gradesPreviewWrap").classList.remove("hide");
+      document.getElementById("applyGradesBtn").disabled = false;
+      document.getElementById("applyGradesBtn").dataset.rows = JSON.stringify(rows);
     }
 
     async function applyGradesPaste(){
-      const stored = $("applyGradesBtn").dataset.rows;
+      const stored = document.getElementById("applyGradesBtn").dataset.rows;
       if(!stored){ alert("اعمل معاينة أولاً."); return; }
       const rows = JSON.parse(stored);
       if(!rows.length) return;
 
-      // تحديث بالدفعات
       const chunkSize = 400;
       let updated = 0;
       for(let i=0;i<rows.length;i+=chunkSize){
         const batch = writeBatch(db);
         const chunk = rows.slice(i,i+chunkSize);
 
-        // نحتاج snap لكل Doc لحساب Total الصحيح دون المساس بالاسم/الفصل
         for(const r of chunk){
           const ref = doc(db,"students", r.id);
           const snap = await getDoc(ref);
@@ -716,13 +735,13 @@
           updated++;
         }
         await batch.commit();
-        $("gradesStatus").textContent = `تم التحديث جزئيًا… (${updated}/${rows.length})`;
+        document.getElementById("gradesStatus").textContent = `تم التحديث جزئيًا… (${updated}/${rows.length})`;
       }
 
-      $("gradesStatus").innerHTML = `<span class="ok-chip">تمت عملية التحديث ✓ (${updated} صف)</span>`;
-      $("applyGradesBtn").disabled = true;
-      $("gradesPreviewWrap").classList.add("hide");
-      $("gradesPaste").value = "";
+      document.getElementById("gradesStatus").innerHTML = `<span class="ok-chip">تمت عملية التحديث ✓ (${updated} صف)</span>`;
+      document.getElementById("applyGradesBtn").disabled = true;
+      document.getElementById("gradesPreviewWrap").classList.add("hide");
+      document.getElementById("gradesPaste").value = "";
       loadStudents();
     }
   </script>
