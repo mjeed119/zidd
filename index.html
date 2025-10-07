@@ -8,19 +8,24 @@
     :root{
       --bg:#f5f7fb; --card:#ffffff; --border:#e6e8ef; --muted:#7c8499;
       --primary:#3b5bdb; --primary-weak:#ecf1ff; --text:#0f1220;
+      --badge:#fff3bf; --badge-text:#7a5d00;
     }
     html[data-theme="dark"]{
       --bg:#0f1220; --card:#171a2b; --border:#2a2e43; --muted:#a2a8c3;
       --primary:#7b90ff; --primary-weak:#1e2450; --text:#e8ecff;
+      --badge:#3b2f16; --badge-text:#ffe9b3;
     }
     body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial;margin:0}
     .container{max-width:900px;margin:24px auto;padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-    .btn{padding:10px 14px;border-radius:10px;background:var(--primary-weak);cursor:pointer;font-weight:600;color:var(--text)}
+    .btn{padding:10px 14px;border-radius:10px;background:var(--primary-weak);cursor:pointer;font-weight:600;color:var(--text);border:none}
     select{padding:10px;border-radius:10px;border:1px solid var(--border)}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:10px;text-align:center}
     th{background:#f3f5fb}
+    html[data-theme="dark"] th{background:#1d223a}
+    .badge{display:inline-block;margin-top:6px;padding:6px 10px;border-radius:999px;background:var(--badge);color:var(--badge-text);font-weight:700;font-size:12px}
+    .muted{color:var(--muted)}
   </style>
 </head>
 <body>
@@ -45,6 +50,7 @@
 
     <section class="card" id="gradesSection" style="display:none;">
       <h2 id="studentHeader"></h2>
+      <div id="studentNoteWrap" class="muted"></div>
       <div id="gradesTableWrapper"></div>
       <p>المجموع: <span id="totalScore">—</span></p>
       <p>النسبة: <span id="percentScore">—</span>%</p>
@@ -58,7 +64,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    // 🔥 إعدادات Firebase لمشروعك
+    // إعدادات Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -81,6 +87,7 @@
     const gradesTableWrapper = document.getElementById("gradesTableWrapper");
     const totalScoreEl = document.getElementById("totalScore");
     const percentScoreEl = document.getElementById("percentScore");
+    const studentNoteWrap = document.getElementById("studentNoteWrap");
 
     let DATA = {}, currentClass = null;
 
@@ -97,44 +104,83 @@
         });
         DATA = { classes };
         classSelect.innerHTML = '<option value="">— اختر —</option>';
-        Object.keys(classes).sort((a,b)=>a.localeCompare(b,'ar')).forEach(cls=>{
-          const opt=document.createElement("option");
-          opt.value=cls; opt.textContent=cls;
-          classSelect.appendChild(opt);
-        });
+        Object.keys(classes)
+          .sort((a,b)=>a.localeCompare(b,'ar'))
+          .forEach(cls=>{
+            const opt=document.createElement("option");
+            opt.value=cls; opt.textContent=cls;
+            classSelect.appendChild(opt);
+          });
       });
     }
 
     function populateStudents(className){
       studentSelect.innerHTML='<option value="">— اختر —</option>';
-      (DATA.classes[className]||[]).forEach(s=>{
-        const opt=document.createElement("option");
-        opt.value=s.id; opt.textContent=s.Name;
-        studentSelect.appendChild(opt);
-      });
+      (DATA.classes[className]||[])
+        .sort((a,b)=> (a.Name||"").localeCompare(b.Name||"", 'ar'))
+        .forEach(s=>{
+          const opt=document.createElement("option");
+          opt.value=s.id; opt.textContent=s.Name;
+          studentSelect.appendChild(opt);
+        });
       studentSection.style.display="block";
     }
 
     function renderGrades(student){
-      studentHeader.textContent=`${student.Name} — ${student.Class}`;
+      studentHeader.textContent=`${student.Name} — ${student.Class || 'غير محدد'}`;
+
+      // شارة الملاحظة أعلى الجدول
+      const noteText = student.Notes && String(student.Notes).trim() ? String(student.Notes) : "لا يوجد";
+      studentNoteWrap.innerHTML = `<span class="badge">الملاحظة: ${noteText}</span>`;
+
+      // أعمدة الدرجات
       const cols=[
-        ["Hw","الواجبات"],["Research","البحث"],["Activity","النشاط الصفي"],
-        ["Absence","الغياب"],["Theoretical","الاختبار النظري"],["Practical","الاختبار العملي"]
+        ["Hw","الواجبات"],
+        ["Research","البحث"],
+        ["Activity","النشاط الصفي"],
+        ["Theoretical","الاختبار النظري"],
+        ["Practical","الاختبار العملي"],
+        ["Absence","الغياب (لا يُحتسب في المجموع)"],
       ];
+
       const table=document.createElement("table");
-      table.innerHTML="<tr><th>البند</th><th>الدرجة</th></tr>";
-      let total=0;
+      const thead=document.createElement("thead");
+      thead.innerHTML="<tr><th>البند</th><th>الدرجة</th></tr>";
+      table.appendChild(thead);
+
+      const tbody=document.createElement("tbody");
+      let total=0, maxTotal=0;
+
       for(const [key,label] of cols){
         const val=Number(student[key]||0);
         const tr=document.createElement("tr");
         tr.innerHTML=`<td>${label}</td><td>${val}</td>`;
-        table.appendChild(tr);
-        if(key!=="Absence") total+=val;
+        tbody.appendChild(tr);
+
+        if(key!=="Absence"){ // الغياب لا يدخل
+          total += val;
+          // إن كان عندك حد أعلى لكل بند، احسبه هنا بدل 100 ثابتة
+          // كمؤقتًا نخلي المجموع المقسوم عليه 100 لو تحب
+          maxTotal += 0; // اترك 0، وسنحسب النسبة بطريقة أبسط تحت
+        }
       }
+
+      // صف الملاحظات داخل الجدول
+      const trNote = document.createElement("tr");
+      trNote.innerHTML = `<td>الملاحظات</td><td>${noteText}</td>`;
+      tbody.appendChild(trNote);
+
+      table.appendChild(tbody);
       gradesTableWrapper.innerHTML="";
       gradesTableWrapper.appendChild(table);
-      totalScoreEl.textContent=total;
-      percentScoreEl.textContent=((total/100)*100).toFixed(2);
+
+      totalScoreEl.textContent= total;
+
+      // النسبة: لو تبغى تقسيم فعلي حسب أوزانك، أعطني الحد الأعلى لكل بند.
+      // مؤقتًا بنعرض نسبة تقريبية بافتراض المجموع من 100:
+      const percent = (total); // اعتبر أن الدرجة النهائية من 100
+      percentScoreEl.textContent = Number.isFinite(percent) ? percent.toFixed(2) : "—";
+
       gradesSection.style.display="block";
     }
 
