@@ -14,8 +14,9 @@
     main{max-width:1100px;margin:26px auto;padding:0 16px}
     .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
     .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-    input,button{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
-    input::placeholder{color:#6d85aa}
+    input,button,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    textarea{min-height:140px;resize:vertical}
+    input::placeholder,textarea::placeholder{color:#6d85aa}
     button{cursor:pointer}
     .primary{background:var(--accent);border-color:#3f70cc}
     .danger{background:var(--danger);border-color:#d94d4d}
@@ -30,13 +31,17 @@
     .hide{display:none}
     a.link{color:#8fb6ff;text-decoration:none}
     .mini{padding:6px 10px;border-radius:8px}
-    .no-print{ /* نخفي في الطباعة */ }
+    .no-print{ }
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
     }
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+    .ok-chip{display:inline-block; padding:2px 8px; border-radius:999px; background:#163b28; color:#bff3d1; font-size:12px; border:1px solid #2b6b49}
+    .warn-chip{display:inline-block; padding:2px 8px; border-radius:999px; background:#3b2f16; color:#ffe9b3; font-size:12px; border:1px solid #8a6d2a}
+    .err{color:#ffb3b3}
   </style>
 </head>
 
@@ -50,7 +55,7 @@
   </header>
 
   <main>
-    <!-- شاشة تسجيل الدخول -->
+    <!-- تسجيل الدخول -->
     <section id="loginView" class="card">
       <h2>تسجيل الدخول</h2>
       <div class="row">
@@ -64,11 +69,11 @@
       <p class="muted">تأكد أن نطاق <code>mjeed119.github.io</code> مضاف في Authorized domains داخل Authentication.</p>
     </section>
 
-    <!-- اللوحة بعد تسجيل الدخول -->
+    <!-- اللوحة -->
     <section id="panelView" class="hide">
       <!-- إضافة / تحديث طالب -->
       <div class="card no-print">
-        <h3>إضافة / تحديث طالب</h3>
+        <h3>إضافة / تحديث طالب فردي</h3>
         <div class="row">
           <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
           <input id="st_name" placeholder="الاسم" />
@@ -90,6 +95,39 @@
         <div class="row">
           <button class="ok" id="saveBtn">حفظ / تحديث</button>
           <button class="ghost" id="clearBtn">تفريغ الحقول</button>
+        </div>
+      </div>
+
+      <!-- استيراد جماعي -->
+      <div class="card no-print">
+        <h3>استيراد جماعي من Excel (لصق مباشر)</h3>
+        <p class="hint">
+          انسخ الصفوف من الإكسل والصقها هنا. مقبول:
+          <span class="ok-chip">3 أعمدة: ID, Name, Class</span> أو
+          <span class="ok-chip">حتى 12 عمودًا: ID, Name, Class, Hw, Classwork, Activity, Research, Theoretical, Practical, Absence, Notes</span>
+          (عادي تكون مفصولة بـ <strong>Tab</strong> أو فاصلة ,).
+        </p>
+        <textarea id="bulkInput" placeholder="مثال (أسطر):
+123456789	أحمد محمد	105
+987654321	سعود علي	105
+..."></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost" id="previewBulk">معاينة</button>
+          <button class="primary" id="importBulk" disabled>استيراد الطلاب</button>
+          <span id="bulkStatus" class="muted"></span>
+        </div>
+        <div id="bulkPreviewWrap" class="hide" style="margin-top:10px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>ID</th><th>الاسم</th><th>الفصل</th>
+                <th>Hw</th><th>Classwork</th><th>Activity</th>
+                <th>Research</th><th>Theoretical</th><th>Practical</th>
+                <th>Absence</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="bulkTbody"></tbody>
+          </table>
         </div>
       </div>
 
@@ -135,7 +173,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     /* إعدادات مشروعك */
     const firebaseConfig = {
@@ -152,11 +190,11 @@
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    /* DOM helpers */
-    const $  = (id)=>document.getElementById(id);
-    const num= (v)=>Number(v||0);
-    const coll = new Intl.Collator('ar');
-    const norm = (s)=> (s||"").toString().trim().toLowerCase();
+    /* Helpers */
+    const $   = (id)=>document.getElementById(id);
+    const num = (v)=>Number(v||0);
+    const coll= new Intl.Collator('ar');
+    const norm= (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
 
     /* Auth */
@@ -165,7 +203,6 @@
       $("panelView").classList.toggle("hide", !user);
       if(user){ $("who").textContent=user.email||"—"; loadStudents(); }
     });
-
     $("loginBtn").onclick = async()=>{
       $("loginMsg").textContent="";
       try{ await signInWithEmailAndPassword(auth, $("email").value, $("password").value); }
@@ -173,13 +210,21 @@
     };
     $("logoutBtn").onclick = async()=>{ await signOut(auth); };
 
-    /* CRUD */
+    /* CRUD فردي */
     $("saveBtn").onclick = saveStudent;
     $("clearBtn").onclick = clearForm;
 
     async function saveStudent(){
       const id = norm($("st_id").value);
       if(!id){ alert("أدخل Document ID"); return; }
+      const data = collectStudentForm();
+      await setDoc(doc(db,"students",id), data, {merge:true});
+      alert("✅ تم الحفظ");
+      clearForm();
+      loadStudents(id); // ابقَ على نفس السطر
+    }
+
+    function collectStudentForm(){
       const data = {
         Name: $("st_name").value.trim(),
         Nid_hash: $("st_nid").value.trim(),
@@ -194,10 +239,7 @@
         Notes: $("st_notes").value.trim()
       };
       data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
-      await setDoc(doc(db,"students",id), data, {merge:true});
-      alert("✅ تم الحفظ");
-      clearForm();
-      loadStudents(id); // ابقَ على نفس السطر
+      return data;
     }
 
     window.deleteStudent = async(id)=>{
@@ -306,8 +348,130 @@
     }
 
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"]
-        .forEach(id => $(id).value="");
+      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(id => $(id).value="");
+    }
+
+    /* ===================== الاستيراد الجماعي ===================== */
+    $("previewBulk").onclick = ()=> previewBulk();
+    $("importBulk").onclick  = ()=> importBulk();
+
+    function splitLine(line){
+      // يفصل بالتاب أولاً، ثم يجرب الفواصل
+      if(line.includes("\t")) return line.split("\t");
+      if(line.includes(","))  return line.split(",");
+      // مسافات متعددة كحل أخير
+      return line.trim().split(/\s{2,}/);
+    }
+
+    function parseBulkText(txt){
+      const out = [];
+      const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      // لو أول سطر شكله عنوان أعمدة، نحذفه
+      if(lines.length && /id|name|class/i.test(lines[0])) lines.shift();
+
+      for (const ln of lines){
+        const parts = splitLine(ln).map(s=>s.trim());
+        if(parts.length < 3) continue; // لازم أقل شيء: ID, Name, Class
+
+        // خرّط الأعمدة
+        const id    = parts[0];
+        const name  = parts[1];
+        const klass = parts[2];
+
+        const hw   = num(parts[3]);
+        const cw   = num(parts[4]);
+        const act  = num(parts[5]);
+        const res  = num(parts[6]);
+        const th   = num(parts[7]);
+        const pr   = num(parts[8]);
+        const abs  = num(parts[9]);
+        const note = parts[10] || "";
+
+        const row = {
+          id: id, Name: name, Class: klass,
+          Hw: hw||0, Classwork: cw||0, Activity: act||0,
+          Research: res||0, Theoretical: th||0, Practical: pr||0,
+          Absence: abs||0, Notes: note
+        };
+        row.Total = computeTotal(row.Hw,row.Classwork,row.Activity,row.Research,row.Theoretical,row.Practical);
+        out.push(row);
+      }
+      return out;
+    }
+
+    function previewBulk(){
+      const txt = $("bulkInput").value;
+      const rows = parseBulkText(txt);
+      const tbody = $("bulkTbody");
+      tbody.innerHTML = "";
+
+      if(!rows.length){
+        $("bulkStatus").innerHTML = "<span class='err'>لا توجد صفوف صالحة. تأكد من أن كل سطر يحتوي ID وName وClass على الأقل.</span>";
+        $("bulkPreviewWrap").classList.add("hide");
+        $("importBulk").disabled = true;
+        return;
+      }
+
+      rows.forEach((r,i)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>"+(i+1)+"</td>"+
+          "<td>"+r.id+"</td>"+
+          "<td>"+(r.Name||"")+"</td>"+
+          "<td>"+(r.Class||"")+"</td>"+
+          "<td>"+r.Hw+"</td>"+
+          "<td>"+r.Classwork+"</td>"+
+          "<td>"+r.Activity+"</td>"+
+          "<td>"+r.Research+"</td>"+
+          "<td>"+r.Theoretical+"</td>"+
+          "<td>"+r.Practical+"</td>"+
+          "<td>"+r.Absence+"</td>"+
+          "<td>"+(r.Notes||"")+"</td>";
+        tbody.appendChild(tr);
+      });
+
+      $("bulkStatus").innerHTML = "<span class='ok-chip'>عدد الصفوف الصالحة: "+rows.length+"</span>";
+      $("bulkPreviewWrap").classList.remove("hide");
+      $("importBulk").disabled = false;
+      // خزّن مؤقتاً في عنصر DOM
+      $("importBulk").dataset.rows = JSON.stringify(rows);
+    }
+
+    async function importBulk(){
+      const stored = $("importBulk").dataset.rows;
+      if(!stored){ alert("اعمل معاينة أولاً."); return; }
+      const rows = JSON.parse(stored);
+      if(!rows.length) return;
+
+      // نجزّئ على دفعات لتجنّب تجاوز حد 500 عملية بالدفعة
+      const chunkSize = 400;
+      let imported = 0;
+
+      for(let i=0; i<rows.length; i+=chunkSize){
+        const batch = writeBatch(db);
+        const chunk = rows.slice(i, i+chunkSize);
+        chunk.forEach(r=>{
+          const ref = doc(db,"students", String(r.id).trim().toLowerCase());
+          const payload = {
+            Name: r.Name||"",
+            Class: r.Class||"",
+            Hw: r.Hw||0, Classwork: r.Classwork||0, Activity: r.Activity||0,
+            Research: r.Research||0, Theoretical: r.Theoretical||0, Practical: r.Practical||0,
+            Absence: r.Absence||0, Notes: r.Notes||"",
+            Total: computeTotal(r.Hw,r.Classwork,r.Activity,r.Research,r.Theoretical,r.Practical)
+          };
+          batch.set(ref, payload, { merge:true });
+        });
+        await batch.commit();
+        imported += chunk.length;
+        $("bulkStatus").innerHTML = "تم الاستيراد جزئيًا… ("+imported+"/"+rows.length+")";
+      }
+
+      $("bulkStatus").innerHTML = "<span class='ok-chip'>تم الاستيراد النهائي ✓ ("+imported+" طالب)</span>";
+      $("importBulk").disabled = true;
+      $("bulkPreviewWrap").classList.add("hide");
+      $("bulkInput").value = "";
+      loadStudents();
     }
   </script>
 </body>
