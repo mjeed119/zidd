@@ -2,10 +2,16 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>لوحة المشرف</title>
   <style>
-    :root { --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1; --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945; }
+    :root {
+      --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
+      --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945;
+      /* عرض أعمدة لاصقة (للثبات وقت السحب يمين/يسار) */
+      --idw: 140px;   /* عرض عمود الـID */
+      --namew: 240px; /* عرض عمود الاسم */
+    }
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
     body{margin:0;background:var(--bg);color:var(--ink)}
     header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
@@ -13,8 +19,12 @@
     header .right{display:flex;gap:8px;align-items:center}
     main{max-width:1200px;margin:26px auto;padding:0 16px}
     .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
-    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-    input,button,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    .row{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:10px}
+    input,button,textarea,select{
+      width:100%;padding:12px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);
+      font-size:16px
+    }
+    textarea{min-height:110px;resize:vertical}
     input::placeholder,textarea::placeholder{color:#6d85aa}
     button{cursor:pointer}
     .primary{background:var(--accent);border-color:#3f70cc}
@@ -22,20 +32,49 @@
     .ghost{background:#0f1a2d}
     .ok{background:var(--ok);border-color:#22b063}
     .muted{color:var(--muted)}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center}
-    th{color:#b9cae6;background:#0f192c;position:sticky;top:0}
-    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457}
+    .mini{padding:8px 10px;border-radius:8px;font-size:14px}
+    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457;display:inline-block;min-width:var(--idw);text-align:center}
     .hide{display:none}
     a.link{color:#8fb6ff;text-decoration:none}
-    .mini{padding:6px 10px;border-radius:8px}
+
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1200px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;background:transparent}
+    thead th{color:#b9cae6;background:#0f192c;position:sticky;top:0;z-index:5}
+    /* أعمدة لاصقة (ID + الاسم) */
+    .sticky-id, .sticky-name { position:sticky; z-index:4; background:var(--card) }
+    .sticky-id  { left: 0;                min-width:var(--idw); }
+    .sticky-name{ left: calc(var(--idw)); min-width:var(--namew); text-align:right; padding-right:12px }
+    /* لاصق لرأس الأعمدة الأولى */
+    th.sticky-id{ z-index:6 }
+    th.sticky-name{ z-index:6 }
+
+    /* شريط الأدوات داخل الجدول على الموبايل */
+    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+    .col-narrow{min-width:90px}
+    .col-wide{min-width:160px}
+
+    /* تحسينات الطباعة */
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
       select{appearance:none;border:none}
+    }
+
+    /* تكيّف الجوال */
+    @media (max-width: 1024px){
+      .row{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .mini{padding:10px 12px}
+      :root{ --namew: 200px; }
+    }
+    @media (max-width: 640px){
+      header h1{font-size:16px}
+      .row{grid-template-columns:1fr}
+      input,button,textarea,select{font-size:15px;padding:12px}
+      :root{ --idw: 120px; --namew: 200px; }
+      table{min-width:1000px}
     }
   </style>
 </head>
@@ -52,7 +91,7 @@
   <main>
     <!-- تسجيل الدخول -->
     <section id="loginView" class="card">
-      <h2>تسجيل الدخول</h2>
+      <h2 style="margin-top:0">تسجيل الدخول</h2>
       <div class="row">
         <input id="email" type="email" placeholder="البريد الإلكتروني"/>
         <input id="password" type="password" placeholder="كلمة المرور"/>
@@ -68,7 +107,7 @@
     <section id="panelView" class="hide">
       <!-- إضافة / تحديث طالب -->
       <div class="card no-print">
-        <h3>إضافة / تحديث طالب</h3>
+        <h3 style="margin-top:0">إضافة / تحديث طالب</h3>
         <div class="row">
           <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
           <input id="st_name" placeholder="الاسم" />
@@ -83,9 +122,9 @@
         </div>
         <div class="row">
           <input id="st_theoretical" type="number" placeholder="Theoretical" />
-          <input id="st_practical"   type="number" placeholder="Practical" />
+          <input id="st_practical" type="number" placeholder="Practical" />
           <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <!-- استبدلت حقل النص بقائمة ملاحظات جاهزة -->
+          <!-- ملاحظات جاهزة -->
           <select id="st_notes"></select>
         </div>
         <div class="row">
@@ -105,26 +144,26 @@
         </div>
       </div>
 
-      <!-- جدول الطلاب -->
-      <div class="card" style="overflow:auto">
-        <h3>قائمة الطلاب</h3>
+      <!-- جدول الطلاب (متحرك أفقيًا + أعمدة لاصقة) -->
+      <div class="card table-wrap">
+        <h3 style="margin-top:0">قائمة الطلاب</h3>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>الاسم</th>
+              <th class="sticky-id">ID</th>
+              <th class="sticky-name">الاسم</th>
               <th>الفصل</th>
               <th class="no-print">نقل للفصل</th>
-              <th>Hw</th>
-              <th>Classwork</th>
-              <th>Activity</th>
-              <th>Research</th>
-              <th>Theoretical</th>
-              <th>Practical</th>
-              <th>الغياب</th>
-              <th>المجموع</th>
-              <th>ملاحظات</th>
-              <th class="no-print">إجراءات</th>
+              <th class="col-narrow">Hw</th>
+              <th class="col-narrow">Classwork</th>
+              <th class="col-narrow">Activity</th>
+              <th class="col-narrow">Research</th>
+              <th class="col-narrow">Theoretical</th>
+              <th class="col-narrow">Practical</th>
+              <th class="col-narrow">الغياب</th>
+              <th class="col-narrow">المجموع</th>
+              <th class="col-wide">ملاحظات</th>
+              <th class="no-print col-wide">إجراءات</th>
             </tr>
           </thead>
           <tbody id="studentsBody"></tbody>
@@ -139,7 +178,7 @@
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك */
+    /* إعدادات مشروعك (نفس مشروع الطلاب) */
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -170,14 +209,11 @@
       "عليه أن يكون أكثر جدية",
       "تحويل إلى الوكيل"
     ];
-    function notesOptionsHTML(selected=""){
+    function notesOptionsHTML(selected="لا يوجد"){
       return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
     }
     // تعبئة قائمة نموذج الإضافة
-    (function fillNotesSelect(){
-      const sel = $("st_notes");
-      sel.innerHTML = notesOptionsHTML("لا يوجد");
-    })();
+    (function fillNotesSelect(){ $("st_notes").innerHTML = notesOptionsHTML("لا يوجد"); })();
 
     /* Auth */
     onAuthStateChanged(auth,(user)=>{
@@ -263,18 +299,9 @@
     // تغيير الملاحظة من الجدول
     window.setNote = async (id, val) => {
       await setDoc(doc(db,"students",id), { Notes: val }, { merge:true });
-      // ما نحتاج reload كامل، لكن للحفاظ على الترتيب/الفلاتر نخليه موحد:
-      // لو حاب بدون إعادة تحميل علّق السطر التالي.
-      // loadStudents(id);
     };
 
-    /* === عرض القائمة (فلترة + بحث + قوائم الفصول) === */
-    $("filterClass").addEventListener("input", ()=> loadStudents());
-    $("searchInput").addEventListener("input", ()=> loadStudents());
-    $("refreshBtn").addEventListener("click", ()=> loadStudents());
-    $("printBtn").addEventListener("click", ()=> window.print());
-
-    // نقل الطالب لفصل آخر
+    // نقل الطالب لفصل آخر (من عمود "نقل للفصل")
     window.moveClass = async (id) => {
       const sel = document.getElementById('mv-'+id);
       const manual = document.getElementById('mvtext-'+id);
@@ -284,6 +311,12 @@
       if (manual) manual.value = '';
       loadStudents(id);
     };
+
+    /* === عرض القائمة (فلترة + بحث + تكيّف) === */
+    $("filterClass").addEventListener("input", ()=> loadStudents());
+    $("searchInput").addEventListener("input", ()=> loadStudents());
+    $("refreshBtn").addEventListener("click", ()=> loadStudents());
+    $("printBtn").addEventListener("click", ()=> window.print());
 
     async function loadStudents(focusId){
       const klass  = $("filterClass").value.trim();
@@ -305,7 +338,7 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
-      // استخرج قائمة الفصول
+      // قائمة الفصول المتاحة لاختيار "نقل للفصل"
       const classSet = new Set();
       arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
       const classList = Array.from(classSet).sort(coll.compare);
@@ -316,57 +349,51 @@
 
       const rows = arr.map(s => `
         <tr id="row-${s.id}">
-          <td class="pill">${s.id}</td>
-          <td>${s.Name||""}</td>
+          <td class="sticky-id"><span class="pill">${s.id}</span></td>
+          <td class="sticky-name">${s.Name||""}</td>
+
           <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
 
           <!-- عمود نقل للفصل -->
-          <td class="no-print" style="min-width:220px;display:flex;gap:6px;align-items:center;justify-content:center">
-            <select id="mv-${s.id}" style="width:110px">
-              ${classOptionsHTML(s.Class||"")}
-            </select>
-            <input id="mvtext-${s.id}" placeholder="أو اكتب فصل جديد" style="width:120px" />
-            <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
+          <td class="no-print" style="min-width:220px">
+            <div style="display:flex;gap:6px;align-items:center;justify-content:center">
+              <select id="mv-${s.id}" style="width:110px">${classOptionsHTML(s.Class||"")}</select>
+              <input id="mvtext-${s.id}" placeholder="اكتب فصل جديد" style="width:120px" />
+              <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
+            </div>
           </td>
 
-          <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
-          <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
-          <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
-          <td contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
-          <td contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
-          <td contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
-          <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
-          <td><strong>${num(s.Total)}</strong></td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
+          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
+          <td class="col-narrow"><strong>${num(s.Total)}</strong></td>
 
           <!-- ملاحظات: قائمة جاهزة تحفظ عند التغيير -->
-          <td>
+          <td class="col-wide">
             <select onchange="setNote('${s.id}', this.value)">
               ${notesOptionsHTML(s.Notes || "لا يوجد")}
             </select>
           </td>
 
-          <td class="tools no-print">
+          <td class="tools no-print col-wide">
             <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
             <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Research',1)">+ بحث</button>
             <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
             <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Practical',1)">+ عملي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
-
             <button class="mini ok"    onclick="bump('${s.id}','Absence',1)">+ غياب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
-
             <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
           </td>
         </tr>
