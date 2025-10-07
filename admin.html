@@ -35,6 +35,7 @@
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
+      select{appearance:none;border:none}
     }
   </style>
 </head>
@@ -84,7 +85,8 @@
           <input id="st_theoretical" type="number" placeholder="Theoretical" />
           <input id="st_practical"   type="number" placeholder="Practical" />
           <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <input id="st_notes" placeholder="ملاحظات" />
+          <!-- استبدلت حقل النص بقائمة ملاحظات جاهزة -->
+          <select id="st_notes"></select>
         </div>
         <div class="row">
           <button class="ok" id="saveBtn">حفظ / تحديث</button>
@@ -112,7 +114,6 @@
               <th>ID</th>
               <th>الاسم</th>
               <th>الفصل</th>
-              <!-- جديد: عمود نقل -->
               <th class="no-print">نقل للفصل</th>
               <th>Hw</th>
               <th>Classwork</th>
@@ -138,7 +139,7 @@
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك (نفس اللي استخدمتها سابقًا) */
+    /* إعدادات مشروعك */
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -159,6 +160,24 @@
     const coll= new Intl.Collator('ar');
     const norm= (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
+
+    // قائمة الملاحظات الجاهزة
+    const NOTES = [
+      "لا يوجد",
+      "مميز",
+      "لم يسلم أوراق العمل للتصحيح",
+      "كثير الغياب",
+      "عليه أن يكون أكثر جدية",
+      "تحويل إلى الوكيل"
+    ];
+    function notesOptionsHTML(selected=""){
+      return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
+    }
+    // تعبئة قائمة نموذج الإضافة
+    (function fillNotesSelect(){
+      const sel = $("st_notes");
+      sel.innerHTML = notesOptionsHTML("لا يوجد");
+    })();
 
     /* Auth */
     onAuthStateChanged(auth,(user)=>{
@@ -189,7 +208,7 @@
         Theoretical: num($("st_theoretical").value),
         Practical: num($("st_practical").value),
         Absence: num($("st_absence").value),
-        Notes: $("st_notes").value.trim()
+        Notes: $("st_notes").value || "لا يوجد"
       };
       data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
       return data;
@@ -206,7 +225,8 @@
     }
 
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes"].forEach(id => $(id).value="");
+      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence"].forEach(id => $(id).value="");
+      $("st_notes").value = "لا يوجد";
     }
 
     /* === CRUD من الجدول === */
@@ -216,7 +236,7 @@
       loadStudents();
     };
 
-    // تعديل مباشر داخل الخلية
+    // تعديل مباشر داخل الخلية الرقمية أو الفصل
     window.edit = async(id, field, td)=>{
       const ref = doc(db,"students",id);
       const snap = await getDoc(ref);
@@ -240,30 +260,30 @@
       loadStudents(id);
     };
 
-    /* === نقل الطالب لفصل آخر === */
+    // تغيير الملاحظة من الجدول
+    window.setNote = async (id, val) => {
+      await setDoc(doc(db,"students",id), { Notes: val }, { merge:true });
+      // ما نحتاج reload كامل، لكن للحفاظ على الترتيب/الفلاتر نخليه موحد:
+      // لو حاب بدون إعادة تحميل علّق السطر التالي.
+      // loadStudents(id);
+    };
+
+    /* === عرض القائمة (فلترة + بحث + قوائم الفصول) === */
+    $("filterClass").addEventListener("input", ()=> loadStudents());
+    $("searchInput").addEventListener("input", ()=> loadStudents());
+    $("refreshBtn").addEventListener("click", ()=> loadStudents());
+    $("printBtn").addEventListener("click", ()=> window.print());
+
+    // نقل الطالب لفصل آخر
     window.moveClass = async (id) => {
       const sel = document.getElementById('mv-'+id);
       const manual = document.getElementById('mvtext-'+id);
       const newClass = (manual?.value || sel?.value || '').trim();
       if(!newClass){ alert('اختر فصلًا من القائمة أو اكتب فصلًا جديدًا'); return; }
-
-      const ref = doc(db, 'students', id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()){
-        alert('الطالب غير موجود');
-        return;
-      }
-      await setDoc(ref, { Class: newClass }, { merge: true });
-
+      await setDoc(doc(db, 'students', id), { Class: newClass }, { merge: true });
       if (manual) manual.value = '';
       loadStudents(id);
     };
-
-    /* === عرض القائمة (فلترة + بحث + بناء قوائم الفصول) === */
-    $("filterClass").addEventListener("input", ()=> loadStudents());
-    $("searchInput").addEventListener("input", ()=> loadStudents());
-    $("refreshBtn").addEventListener("click", ()=> loadStudents());
-    $("printBtn").addEventListener("click", ()=> window.print());
 
     async function loadStudents(focusId){
       const klass  = $("filterClass").value.trim();
@@ -285,7 +305,7 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
-      // استخرج قائمة الفصول من النتائج المعروضة
+      // استخرج قائمة الفصول
       const classSet = new Set();
       arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
       const classList = Array.from(classSet).sort(coll.compare);
@@ -317,7 +337,14 @@
           <td contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
           <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
           <td><strong>${num(s.Total)}</strong></td>
-          <td>${s.Notes||""}</td>
+
+          <!-- ملاحظات: قائمة جاهزة تحفظ عند التغيير -->
+          <td>
+            <select onchange="setNote('${s.id}', this.value)">
+              ${notesOptionsHTML(s.Notes || "لا يوجد")}
+            </select>
+          </td>
+
           <td class="tools no-print">
             <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
