@@ -39,6 +39,36 @@
     .note-wrap{display:flex;gap:6px}
     .total{font-weight:800}
     .hint{font-size:12px;color:var(--muted)}
+
+    /* تحسين العرض على الشاشات الكبيرة */
+    @media (min-width:1024px){
+      .st-card .in-num{
+        width:72px !important;
+        text-align:center;
+        font-size:16px;
+        padding:8px 6px;
+      }
+      .st-card .mini{
+        width:36px;
+        height:36px;
+        font-size:18px;
+        line-height:34px;
+      }
+      .nums{gap:10px}
+      /* شارة توضيح القيمة */
+      .val-preview{
+        margin-inline-start:6px;
+        padding:2px 8px;
+        border-radius:999px;
+        border:1px solid #2b3e66;
+        background:#0f1a2d;
+        font-size:14px;
+        display:inline-block;
+        min-width:32px;
+        text-align:center;
+      }
+    }
+
     @media (max-width:900px){
       .row{grid-template-columns:repeat(2,minmax(0,1fr))}
       .toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -148,7 +178,6 @@
     function notesOptionsHTML(selected="لا يوجد"){
       return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
     }
-    // تعبئة قائمة النموذج
     (function(){ $("st_notes").innerHTML = notesOptionsHTML("لا يوجد"); })();
 
     // Auth
@@ -230,8 +259,8 @@
         if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
       }
 
-      // ربط الأحداث لكل بطاقة
       bindCardEvents();
+      addValueChips(); // الشارات على الديسكتوب
     }
 
     function cardHTML(s){
@@ -311,12 +340,11 @@
     }
 
     function bindCardEvents(){
-      // أزرار +/- وتحديث التوتال
       document.querySelectorAll(".st-card").forEach(card=>{
         const id = card.dataset.id;
         const numInputs = card.querySelectorAll(".in-num");
-        const totalEl   = card.querySelector("[[data-total]]".replace(/\[|\]/g,"")); // workaround للـ[ ]
         const totalElem = card.querySelector("[data-total]");
+
         const getVals = ()=> {
           const vals = {};
           numInputs.forEach(i=> vals[i.dataset.field] = num(i.value));
@@ -331,14 +359,14 @@
           btn.onclick = ()=> {
             const field = btn.dataset.field;
             const input = card.querySelector(`.in-num[data-field="${field}"]`);
-            input.stepUp(); updateTotal();
+            input.stepUp(); input.dispatchEvent(new Event("input")); updateTotal();
           };
         });
         card.querySelectorAll(".minus").forEach(btn=>{
           btn.onclick = ()=> {
             const field = btn.dataset.field;
             const input = card.querySelector(`.in-num[data-field="${field}"]`);
-            input.stepDown(); updateTotal();
+            input.stepDown(); input.dispatchEvent(new Event("input")); updateTotal();
           };
         });
         numInputs.forEach(inp=> inp.addEventListener("input", updateTotal));
@@ -378,6 +406,22 @@
           await deleteDoc(doc(db,"students",id));
           card.remove();
         };
+      });
+    }
+
+    // الشارات التي تعرض القيمة بجانب الحقول (تظهر على الديسكتوب فقط)
+    function addValueChips(){
+      const isDesktop = window.matchMedia("(min-width:1024px)").matches;
+      if(!isDesktop) return;
+
+      document.querySelectorAll('.st-card input.in-num').forEach(inp=>{
+        // لا تكرر الشارة
+        if (inp.nextElementSibling && inp.nextElementSibling.classList?.contains('val-preview')) return;
+        const chip = document.createElement('span');
+        chip.className = 'val-preview';
+        chip.textContent = inp.value || '0';
+        inp.insertAdjacentElement('afterend', chip);
+        inp.addEventListener('input', ()=> chip.textContent = inp.value || '0');
       });
     }
   </script>
