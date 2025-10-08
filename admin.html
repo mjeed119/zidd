@@ -5,103 +5,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>لوحة المشرف — بطاقات</title>
   <style>
-    :root{
-      --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
-      --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945;
-    }
-    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
-    body{margin:0;background:var(--bg);color:var(--ink)}
-    header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
-    header h1{font-size:18px;margin:0}
-    .muted{color:var(--muted)}
-    .btn{padding:10px 14px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);cursor:pointer}
-    .btn.primary{background:var(--accent);border-color:#3f70cc}
-    .btn.ok{background:var(--ok);border-color:#22b063}
-    .btn.danger{background:var(--danger);border-color:#d94d4d}
-    .btn.ghost{background:#0f1a2d}
-    input,select,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
-    input::placeholder,textarea::placeholder{color:#6d85aa}
-    main{max-width:1200px;margin:24px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
-    .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .toolbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:10px}
+   :root{
+  --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
+  --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945;
+}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
+body{margin:0;background:var(--bg);color:var(--ink)}
+header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0}
+.muted{color:var(--muted)}
+.btn{padding:10px 14px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:#3f70cc}
+.btn.ok{background:var(--ok);border-color:#22b063}
+.btn.danger{background:#ff5d5d;border-color:#d94d4d}
+.btn.ghost{background:#0f1a2d}
+input,select,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+input::placeholder,textarea::placeholder{color:#6d85aa}
+main{max-width:1200px;margin:24px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.toolbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:10px}
 
-    /* الشبكة والبطاقة — مُكَبّرة لسطح المكتب */
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(460px, 1fr));
-      gap:14px;
-      margin-top:12px;
-    }
-    .st-card{
-      background:#0f1a2d;border:1px solid #203253;border-radius:14px;
-      padding:14px;display:flex;flex-direction:column;gap:12px;
-      min-width:460px;overflow:hidden;
-    }
+/* ========= الشبكة والبطاقة ========= */
+/* الأساس (موبايل أولاً) */
+.grid{
+  display:grid;
+  grid-template-columns: 1fr;   /* بطاقة واحدة */
+  gap:14px;
+  margin-top:12px;
+}
+.st-card{
+  background:#0f1a2d;border:1px solid #203253;border-radius:14px;
+  padding:14px;display:flex;flex-direction:column;gap:12px;
+  width:100%; min-width:auto; overflow:hidden;
+}
 
-    .st-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .pill{border:1px solid #223457;background:#0f1a2d;border-radius:999px;padding:4px 8px;font-size:12px}
-    .name{font-weight:700}
-    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    .line{height:1px;background:#1a2945;margin:2px 0}
-    .actions{display:flex;flex-wrap:wrap;gap:8px}
-    .mini{padding:6px 8px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);font-size:13px;cursor:pointer}
-    .mini.ok{background:#173a28;border-color:#2b6b49}
-    .mini.ghost{background:#0f1a2d}
-    .note-wrap{display:flex;gap:8px}
-    .total{font-weight:800}
-    .hint{font-size:12px;color:var(--muted)}
+/* رأس البطاقة وباقي العناصر */
+.st-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pill{border:1px solid #223457;background:#0f1a2d;border-radius:999px;padding:4px 8px;font-size:12px}
+.name{font-weight:700}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.line{height:1px;background:#1a2945;margin:2px 0}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.mini{padding:6px 8px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);font-size:13px;cursor:pointer}
+.mini.ok{background:#173a28;border-color:#2b6b49}
+.mini.ghost{background:#0f1a2d}
+.note-wrap{display:flex;gap:8px}
+.note-wrap select,.note-wrap input{flex:1;min-width:0}
+.total{font-weight:800}
+.hint{font-size:12px;color:var(--muted)}
 
-    /* صف الدرجات بثلاث أعمدة مريحة للرؤية */
-    .score-row{
-      display:grid;
-      grid-template-columns: 56px minmax(130px, 180px) 56px;
-      gap:10px; align-items:center;
-    }
-    .st-card .mini{ width:56px; height:46px; font-size:18px; line-height:44px; }
-    .st-card .in-num{ width:100%; text-align:center; font-size:18px; padding:12px 8px; }
+/* صف التحكم للدرجات */
+.score-row{
+  display:grid;
+  grid-template-columns:48px minmax(110px,1fr) 48px; /* موبايل */
+  gap:8px; align-items:center;
+}
+.st-card .mini{ width:48px; height:44px; font-size:18px; line-height:42px; }
+.st-card .in-num{ width:100%; text-align:center; font-size:18px; padding:12px 8px; }
 
-    /* إخفاء أسهم الأرقام */
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
-    input[type=number]{ -moz-appearance:textfield }
+/* إخفاء أسهم الأرقام */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
+input[type=number]{ -moz-appearance:textfield }
 
-    /* ملاحظات تتمدد */
-    .note-wrap select, .note-wrap input{ flex:1; min-width:0; }
+/* ===== الطباعة: صفحة لكل فصل ===== */
+@media print{
+  header,.no-print,.toolbar .btn{ display:none !important; }
+  body{ background:#fff; color:#000; }
+  .card{ border:none; box-shadow:none; }
+  .class-break{ page-break-after:always; }
+}
 
-    /* الطباعة: صفحة لكل فصل */
-    @media print{
-      header,.no-print,.toolbar .btn{ display:none !important; }
-      body{ background:#fff; color:#000; }
-      .card{ border:none; box-shadow:none; }
-      .class-break{ page-break-after:always; }
-    }
+/* تابلت (نثبت بطاقة واحدة أيضاً) */
+@media (min-width:768px){
+  .grid{ grid-template-columns: 1fr; }
+}
 
-    /* تكيّف تابلت */
-    @media (max-width:900px){
-      .row{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .grid{ grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); }
-      .st-card{ min-width:360px; }
-      .score-row{ grid-template-columns:52px minmax(120px, 160px) 52px; gap:8px; }
-    }
+/* كمبيوتر: بطاقة واحدة عريضة ومتمركزة وأزرار/حقول أكبر */
+@media (min-width:1024px){
+  .grid{ grid-template-columns: 1fr; }
+  .st-card{ max-width:1100px; margin-inline:auto; }
+  .score-row{ grid-template-columns:64px 240px 64px; gap:10px; }
+  .st-card .mini{ width:64px; height:48px; line-height:46px; }
+  .st-card .in-num{ font-size:18px; padding:12px 10px; }
+}
 
-    /* جوال */
-    @media (max-width:520px){
-      .row{grid-template-columns:1fr}
-      .toolbar{grid-template-columns:1fr}
-      .nums{grid-template-columns:repeat(2,1fr)}
-      .grid{ grid-template-columns:1fr; }
-      .st-card{ min-width:auto; }
-      .score-row{ grid-template-columns:48px minmax(110px, 1fr) 48px; gap:8px; }
-    }
+/* شاشات كبيرة جداً */
+@media (min-width:1400px){
+  .st-card{ max-width:1200px; }
+  .score-row{ grid-template-columns:68px 260px 68px; }
+}
 
-    /* شاشات كبيرة جداً */
-    @media (min-width:1400px){
-      .grid{ grid-template-columns:repeat(auto-fill, minmax(520px,1fr)); }
-      .st-card{ min-width:520px; }
-      .score-row{ grid-template-columns:60px minmax(150px, 200px) 60px; }
-    }
+/* تكيّف أصغر الشاشات */
+@media (max-width:900px){
+  .row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr}
+  .toolbar{grid-template-columns:1fr}
+  .nums{grid-template-columns:repeat(2,1fr)}
+  .grid{ grid-template-columns:1fr; }
+}
   </style>
 </head>
 <body>
