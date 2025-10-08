@@ -2,155 +2,127 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>لوحة المشرف — Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لوحة الدرجات (بطاقات)</title>
   <style>
-    :root { --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1; --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945; }
+    :root{
+      --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
+      --accent:#4f8cff; --accent-weak:#1d2b4f; --line:#1a2945; --ok:#2ecc71; --danger:#ff5d5d;
+    }
+    html[data-theme="light"]{
+      --bg:#f6f8fe; --card:#ffffff; --ink:#0f1220; --muted:#66728f;
+      --accent:#3b5bdb; --accent-weak:#ecf1ff; --line:#e6e9f3; --ok:#2e8b57; --danger:#d94141;
+    }
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
     body{margin:0;background:var(--bg);color:var(--ink)}
-    header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
-    header h1{font-size:18px;margin:0}
-    header .right{display:flex;gap:8px;align-items:center}
-    main{max-width:1200px;margin:26px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
-    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-    input,button,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
-    textarea{min-height:120px;resize:vertical}
-    input::placeholder,textarea::placeholder{color:#6d85aa}
+    header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+      padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+    header .left{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    header h1{margin:0;font-size:16px}
+    main{max-width:1200px;margin:18px auto;padding:0 12px 60px}
+
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:8px}
+    .row > *{grid-column:span 12}
+    @media(min-width:640px){ .sm-6{grid-column:span 6} .sm-4{grid-column:span 4} .sm-3{grid-column:span 3} }
+    @media(min-width:960px){ .md-3{grid-column:span 3} .md-4{grid-column:span 4} .md-6{grid-column:span 6} }
+
+    input,select,button{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);width:100%}
+    input[type=number]{text-align:center}
     button{cursor:pointer}
-    .primary{background:var(--accent);border-color:#3f70cc}
-    .danger{background:var(--danger);border-color:#d94d4d}
-    .ghost{background:#0f1a2d}
-    .ok{background:var(--ok);border-color:#22b063}
+    .btn{background:var(--accent-weak)}
+    .btn-primary{background:var(--accent);border-color:transparent;color:#fff}
+    .btn-ok{background:var(--ok);border-color:transparent;color:#fff}
+    .btn-ghost{background:transparent}
+    .btn-danger{background:var(--danger);border-color:transparent;color:#fff}
+
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
+    .status{position:fixed;inset-inline:12px;bottom:12px;background:var(--card);border:1px solid var(--line);
+      border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+    .card h3{margin:0 0 8px;font-size:16px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .sub{color:var(--muted);font-size:12px}
+    .fields{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+    .field{display:flex;flex-direction:column;gap:4px}
+    .field label{font-size:12px;color:var(--muted)}
+    .spin{display:flex;gap:6px}
+    .spin input{flex:1}
+    .spin .xbtn{width:38px;padding:0}
+    .total{margin-top:8px;font-weight:700;text-align:center}
+    .dirty{outline:2px solid var(--ok);border-radius:12px}
+
+    .note{margin-top:8px}
     .muted{color:var(--muted)}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
-    th{color:#b9cae6;background:#0f192c;position:sticky;top:0;z-index:1}
-    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457;white-space:nowrap}
-    .hide{display:none}
-    a.link{color:#8fb6ff;text-decoration:none}
-    .mini{padding:6px 10px;border-radius:8px}
-    .notes-wrap{display:flex;gap:6px;align-items:center;justify-content:center}
-    .notes-wrap select{min-width:140px}
-    .notes-wrap input{min-width:160px}
-    @media (max-width:720px){
-      .notes-wrap{flex-direction:column;align-items:stretch}
-      table{font-size:14px}
-    }
+    .sep{height:1px;background:var(--line);margin:8px 0}
+
     @media print{
-      header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
-      body{ background:#fff; color:#000; }
-      .card{ border:none; box-shadow:none; }
-      th,td{ border:1px solid #999; }
-      select,input{border:none}
+      header, .status, .no-print{display:none !important}
+      body{background:#fff;color:#000}
+      .card{break-inside:avoid}
     }
   </style>
 </head>
-
 <body>
-  <header class="no-print">
-    <h1>لوحة تحكم المشرف</h1>
-    <div class="right">
-      <span class="muted">المستخدم: <span id="who">—</span></span>
-      <button class="ghost" id="logoutBtn">تسجيل الخروج</button>
+  <header>
+    <div class="left">
+      <h1>لوحة الدرجات (بطاقات)</h1>
+      <span class="chip">مشروع: <span id="who">—</span></span>
+    </div>
+    <div class="toolbar">
+      <button id="toggleTheme" class="btn">الوضع الداكن</button>
+      <a href="admin.html" class="btn">لوحة المشرف التقليدية</a>
+      <button id="logoutBtn" class="btn-ghost">تسجيل الخروج</button>
     </div>
   </header>
 
   <main>
     <!-- تسجيل الدخول -->
-    <section id="loginView" class="card">
-      <h2>تسجيل الدخول</h2>
+    <section id="loginView" class="card" style="max-width:560px;margin:30px auto">
+      <h3>تسجيل الدخول</h3>
       <div class="row">
-        <input id="email" type="email" placeholder="البريد الإلكتروني"/>
-        <input id="password" type="password" placeholder="كلمة المرور"/>
+        <input id="email" class="sm-6" placeholder="البريد الإلكتروني" />
+        <input id="password" class="sm-6" type="password" placeholder="كلمة المرور" />
+        <button id="loginBtn" class="btn-primary sm-6">دخول</button>
+        <div class="muted sm-12">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Authentication → Settings → Authorized domains.</div>
+        <div id="loginMsg" class="muted sm-12"></div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <button class="primary" id="loginBtn">دخول</button>
-      </div>
-      <p id="loginMsg" class="muted"></p>
-      <p class="muted">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Authentication → Settings → Authorized domains.</p>
     </section>
 
-    <!-- اللوحة -->
+    <!-- لوحة التحكم -->
     <section id="panelView" class="hide">
-      <!-- إضافة / تحديث طالب -->
-      <div class="card no-print">
-        <h3>إضافة / تحديث طالب</h3>
+      <div class="card">
         <div class="row">
-          <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
-          <input id="st_name" placeholder="الاسم" />
-          <input id="st_nid" placeholder="رقم الهوية (اختياري)" />
-          <input id="st_class" placeholder="الفصل (مثال: 105)" />
+          <input id="classInput" class="sm-4 md-3" placeholder="اكتب رقم الفصل (مثال: 105)" />
+          <button id="loadBtn" class="btn sm-4 md-3">تحميل طلاب الفصل</button>
+          <input id="searchInput" class="sm-4 md-3" placeholder="بحث بالاسم أو ID" />
+          <div class="chip sm-12 md-3">عدد الطلاب: <b id="count">0</b></div>
         </div>
-        <div class="row">
-          <input id="st_hw" type="number" placeholder="Hw" />
-          <input id="st_classwork" type="number" placeholder="Classwork" />
-          <input id="st_activity" type="number" placeholder="Activity" />
-          <input id="st_research" type="number" placeholder="Research" />
-        </div>
-        <div class="row">
-          <input id="st_theoretical" type="number" placeholder="Theoretical" />
-          <input id="st_practical"   type="number" placeholder="Practical" />
-          <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <!-- الملاحظات: قائمة + ملاحظة مخصصة -->
-          <div class="notes-wrap">
-            <select id="st_notes_sel"></select>
-            <input id="st_notes_custom" placeholder="اكتب ملاحظة مخصصة (تتغلب على القائمة)" />
-          </div>
-        </div>
-        <div class="row">
-          <button class="ok" id="saveBtn">حفظ / تحديث</button>
-          <button class="ghost" id="clearBtn">تفريغ الحقول</button>
+        <div class="sep"></div>
+        <div class="toolbar no-print">
+          <button id="saveAllBtn" class="btn-ok">حفظ جميع التغييرات</button>
+          <button id="exportCsvBtn" class="btn">تصدير CSV</button>
+          <button id="printBtn" class="btn">طباعة</button>
         </div>
       </div>
 
-      <!-- فلترة / بحث / طباعة -->
-      <div class="card no-print">
-        <div class="row">
-          <input id="filterClass" placeholder="فلترة بالفصل (مثال: 105)" />
-          <input id="searchInput" placeholder="بحث بالاسم أو ID" />
-          <button class="ghost" id="refreshBtn">تحديث القائمة</button>
-          <button class="primary" id="printBtn">طباعة الكشف</button>
-          <a class="link" href="https://console.firebase.google.com/" target="_blank" rel="noopener">فتح Firebase Console ↗</a>
-        </div>
-      </div>
-
-      <!-- جدول الطلاب -->
-      <div class="card" style="overflow:auto">
-        <h3>قائمة الطلاب</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>الاسم</th>
-              <th>الفصل</th>
-              <th class="no-print">نقل للفصل</th>
-              <th>Hw</th>
-              <th>Classwork</th>
-              <th>Activity</th>
-              <th>Research</th>
-              <th>Theoretical</th>
-              <th>Practical</th>
-              <th>الغياب</th>
-              <th>المجموع</th>
-              <th>الملاحظات (جاهزة + مخصصة)</th>
-              <th class="no-print">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody id="studentsBody"></tbody>
-        </table>
-      </div>
+      <div id="cards" class="grid"></div>
     </section>
   </main>
 
-  <!-- Firebase + المنطق -->
+  <div class="status no-print" id="statusBar" style="display:none">
+    <div><span id="dirtyCount">0</span> صف معدّل</div>
+    <div id="statusMsg" class="muted">—</div>
+  </div>
+
+  <!-- Firebase + منطق الصفحة -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك (نفس مشروع الطلاب) */
+    /* إعدادات Firebase لمشروعك */
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -165,14 +137,43 @@
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    /* Helpers */
-    const $   = (id)=>document.getElementById(id);
-    const num = (v)=>Number(v||0);
-    const coll= new Intl.Collator('ar');
-    const norm= (s)=> (s||"").toString().trim().toLowerCase();
+    /* UI Helpers */
+    const $  = (id)=>document.getElementById(id);
+    const num= (v)=>Number(v||0);
+    const coll = new Intl.Collator('ar');
+    const norm = (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
 
-    // قائمة الملاحظات الجاهزة
+    /* Theme */
+    const toggle = $("toggleTheme");
+    function applyTheme(t){
+      document.documentElement.dataset.theme = t;
+      localStorage.setItem("theme", t);
+      toggle.textContent = t==="dark" ? "الوضع الفاتح" : "الوضع الداكن";
+    }
+    applyTheme(localStorage.getItem("theme") || "dark");
+    toggle.onclick = ()=> applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+
+    /* Auth */
+    onAuthStateChanged(auth,(user)=>{
+      $("loginView").classList.toggle("hide", !!user);
+      $("panelView").classList.toggle("hide", !user);
+      if(user){
+        $("who").textContent = user.email || "—";
+      }
+    });
+    $("loginBtn").onclick = async()=>{
+      $("loginMsg").textContent = "";
+      try{
+        await signInWithEmailAndPassword(auth, $("email").value, $("password").value);
+      }catch(e){
+        $("loginMsg").textContent = "❌ خطأ في تسجيل الدخول";
+        console.error(e);
+      }
+    };
+    $("logoutBtn").onclick = async()=>{ await signOut(auth); };
+
+    /* Notes options */
     const NOTES = [
       "لا يوجد",
       "مميز",
@@ -181,225 +182,294 @@
       "عليه أن يكون أكثر جدية",
       "تحويل إلى الوكيل"
     ];
-    const notesOptionsHTML = (selected="") =>
-      NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
+    const notesOptions = (sel="لا يوجد") => NOTES.map(n => `<option value="${n}" ${n===sel?'selected':''}>${n}</option>`).join("");
 
-    // تعبئة قائمة نموذج الإضافة
-    (function fillNotesSelect(){
-      $("st_notes_sel").innerHTML = notesOptionsHTML("لا يوجد");
-    })();
+    /* State */
+    let CURRENT_CLASS = "";
+    let DATA = [];         // الطلاب المعروضين
+    const DIRTY = new Map(); // id -> {fields...}
 
-    /* Auth */
-    onAuthStateChanged(auth,(user)=>{
-      $("loginView").classList.toggle("hide", !!user);
-      $("panelView").classList.toggle("hide", !user);
-      if(user){ $("who").textContent=user.email||"—"; loadStudents(); }
-    });
-    $("loginBtn").onclick = async()=>{
-      $("loginMsg").textContent="";
-      try{ await signInWithEmailAndPassword(auth, $("email").value, $("password").value); }
-      catch(e){ $("loginMsg").textContent="❌ خطأ في تسجيل الدخول"; console.error(e); }
-    };
-    $("logoutBtn").onclick = async()=>{ await signOut(auth); };
-
-    /* === إضافة/تحديث طالب يدوي === */
-    $("saveBtn").onclick = saveStudent;
-    $("clearBtn").onclick = clearForm;
-
-    function collectStudentForm(){
-      // لو فيه ملاحظة مخصصة نستخدمها، وإلا نستخدم من القائمة
-      const customNote = $("st_notes_custom").value.trim();
-      const note = customNote || $("st_notes_sel").value || "لا يوجد";
-
-      const data = {
-        Name: $("st_name").value.trim(),
-        Nid_hash: $("st_nid").value.trim(),
-        Class: $("st_class").value.trim(),
-        Hw: num($("st_hw").value),
-        Classwork: num($("st_classwork").value),
-        Activity: num($("st_activity").value),
-        Research: num($("st_research").value),
-        Theoretical: num($("st_theoretical").value),
-        Practical: num($("st_practical").value),
-        Absence: num($("st_absence").value),
-        Notes: note
-      };
-      data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
-      return data;
+    function setDirty(id, partial){
+      const prev = DIRTY.get(id) || {};
+      DIRTY.set(id, { ...prev, ...partial });
+      updateStatus();
+      const card = $("card-"+id);
+      if(card) card.classList.add("dirty");
+    }
+    function clearDirtyFor(id){
+      DIRTY.delete(id);
+      updateStatus();
+      const card = $("card-"+id);
+      if(card) card.classList.remove("dirty");
+    }
+    function clearAllDirty(){
+      DIRTY.clear(); updateStatus();
+      document.querySelectorAll(".card.dirty").forEach(c=> c.classList.remove("dirty"));
+    }
+    function updateStatus(){
+      const n = DIRTY.size;
+      $("dirtyCount").textContent = n;
+      $("statusBar").style.display = n? "flex":"none";
+      $("statusMsg").textContent = n? "جاهز للحفظ":"—";
     }
 
-    async function saveStudent(){
-      const id = norm($("st_id").value);
-      if(!id){ alert("أدخل Document ID"); return; }
-      const data = collectStudentForm();
-      await setDoc(doc(db,"students",id), data, {merge:true});
-      alert("✅ تم الحفظ");
-      clearForm();
-      loadStudents(id);
+    /* تحميل الطلاب لفصل معين */
+    $("loadBtn").onclick = loadByClass;
+    $("searchInput").addEventListener("input", renderCards);
+    $("saveAllBtn").onclick = saveAll;
+    $("exportCsvBtn").onclick = exportCsv;
+    $("printBtn").onclick = ()=> window.print();
+
+    async function loadByClass(){
+      const klass = ($("classInput").value||"").trim();
+      if(!klass){ alert("اكتب رقم الفصل"); return; }
+      CURRENT_CLASS = klass;
+      $("cards").innerHTML = "<div class='muted'>جاري التحميل…</div>";
+      clearAllDirty();
+
+      const qs = await getDocs(query(collection(db,"students"), where("Class","==",klass)));
+      DATA = [];
+      qs.forEach(d => {
+        const s = d.data();
+        DATA.push({ id: d.id, ...s });
+      });
+      // ترتيب بالاسم
+      DATA.sort((a,b)=> coll.compare(a.Name||"", b.Name||""));
+      $("count").textContent = DATA.length;
+      renderCards();
     }
 
-    function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes_custom"].forEach(id => $(id).value="");
-      $("st_notes_sel").value = "لا يوجد";
+    function renderCards(){
+      const q = norm($("searchInput").value);
+      const list = q ? DATA.filter(s => norm(s.Name).includes(q) || norm(s.id).includes(q)) : DATA;
+      const html = list.map(s => cardHTML(s)).join("");
+      $("cards").innerHTML = html || "<div class='muted'>لا يوجد طلاب</div>";
+      // أربط الأحداث
+      list.forEach(s => bindCardHandlers(s.id));
     }
 
-    /* === CRUD من الجدول === */
-    window.deleteStudent = async(id)=>{
-      if(!confirm("حذف الطالب؟")) return;
-      await deleteDoc(doc(db,"students",id));
-      loadStudents();
-    };
+    function fieldRow(label, id, key, val){
+      const fid = `${key}-${id}`;
+      return `
+        <div class="field">
+          <label>${label}</label>
+          <div class="spin">
+            <button class="xbtn" data-act="dec" data-field="${key}" data-id="${id}">-</button>
+            <input type="number" id="${fid}" data-id="${id}" data-field="${key}" value="${num(val)}" />
+            <button class="xbtn" data-act="inc" data-field="${key}" data-id="${id}">+</button>
+          </div>
+        </div>
+      `;
+    }
 
-    // تعديل مباشر داخل الخلية الرقمية أو الفصل
-    window.edit = async(id, field, td)=>{
-      const ref = doc(db,"students",id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const data = snap.data();
-      data[field] = field==="Class" ? td.textContent.trim() : num(td.textContent);
-      data.Total  = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
-      await setDoc(ref, data, { merge:true });
-      loadStudents(id);
-    };
+    function cardHTML(s){
+      const total = computeTotal(s.Hw, s.Classwork, s.Activity, s.Research, s.Theoretical, s.Practical);
+      const isDirty = DIRTY.has(s.id) ? "dirty":"";
+      return `
+        <div class="card ${isDirty}" id="card-${s.id}">
+          <h3>
+            <span>${s.Name||"—"}</span>
+            <span class="sub">${s.id} • فصل ${s.Class||"—"}</span>
+          </h3>
 
-    // أسهم زيادة/نقصان
-    window.bump = async(id, field, delta)=>{
-      const ref = doc(db,"students",id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const s = snap.data();
-      const updated = { ...s, [field]: num(s[field])+delta };
-      updated.Total = computeTotal(updated.Hw,updated.Classwork,updated.Activity,updated.Research,updated.Theoretical,updated.Practical);
-      await setDoc(ref, updated);
-      loadStudents(id);
-    };
-
-    // تغيير الملاحظة (اختيار جاهز + حقل مخصّص لكل صف)
-    window.saveNoteRow = async (id) => {
-      const sel = document.getElementById('note-sel-'+id);
-      const txt = document.getElementById('note-txt-'+id);
-      const note = (txt?.value.trim()) || (sel?.value || "لا يوجد");
-      await setDoc(doc(db,"students",id), { Notes: note }, { merge:true });
-      if (txt) { txt.style.borderColor = "#22b063"; setTimeout(()=> txt.style.borderColor="#243756", 700); }
-      if (sel) { sel.style.borderColor = "#22b063"; setTimeout(()=> sel.style.borderColor="#243756", 700); }
-    };
-
-    // نقل الطالب لفصل آخر
-    window.moveClass = async (id) => {
-      const sel = document.getElementById('mv-'+id);
-      const manual = document.getElementById('mvtext-'+id);
-      const newClass = (manual?.value || sel?.value || '').trim();
-      if(!newClass){ alert('اختر فصلًا من القائمة أو اكتب فصلًا جديدًا'); return; }
-      await setDoc(doc(db, 'students', id), { Class: newClass }, { merge: true });
-      if (manual) manual.value = '';
-      loadStudents(id);
-    };
-
-    /* === عرض القائمة (فلترة + بحث + قوائم الفصول) === */
-    $("filterClass").addEventListener("input", ()=> loadStudents());
-    $("searchInput").addEventListener("input", ()=> loadStudents());
-    $("refreshBtn").addEventListener("click", ()=> loadStudents());
-    $("printBtn").addEventListener("click", ()=> window.print());
-
-    async function loadStudents(focusId){
-      const klass  = $("filterClass").value.trim();
-      const search = norm($("searchInput").value);
-      $("studentsBody").innerHTML = "<tr><td colspan='14'>جاري التحميل…</td></tr>";
-
-      const base = collection(db,"students");
-      const qy   = klass ? query(base, where("Class","==",klass)) : base;
-      const qs   = await getDocs(qy);
-
-      let arr = [];
-      qs.forEach(d=>{ const s=d.data(); s.id=d.id; arr.push(s); });
-
-      // ترتيب هجائي عربي بالاسم
-      arr.sort((a,b)=> coll.compare(a.Name||"", b.Name||""));
-
-      // بحث بالاسم أو الـID
-      if(search){
-        arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
-      }
-
-      // استخرج قائمة الفصول
-      const classSet = new Set();
-      arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
-      const classList = Array.from(classSet).sort(coll.compare);
-      const classOptionsHTML = (current) =>
-        ['<option value="">— اختر —</option>']
-          .concat(classList.map(c => `<option value="${c}" ${String(current)===String(c)?'selected':''}>${c}</option>`))
-          .join('');
-
-      const rows = arr.map(s => `
-        <tr id="row-${s.id}">
-          <td class="pill">${s.id}</td>
-          <td>${s.Name||""}</td>
-          <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
-
-          <!-- عمود نقل للفصل -->
-          <td class="no-print" style="min-width:220px;display:flex;gap:6px;align-items:center;justify-content:center">
-            <select id="mv-${s.id}" style="width:110px">
-              ${classOptionsHTML(s.Class||"")}
-            </select>
-            <input id="mvtext-${s.id}" placeholder="أو اكتب فصل جديد" style="width:120px" />
-            <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
-          </td>
-
-          <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
-          <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
-          <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
-          <td contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
-          <td contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
-          <td contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
-          <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
-          <td><strong>${num(s.Total)}</strong></td>
-
-          <!-- الملاحظات: قائمة + حقل مخصص لكل صف -->
-          <td>
-            <div class="notes-wrap">
-              <select id="note-sel-${s.id}">
-                ${notesOptionsHTML(s.Notes || "لا يوجد")}
-              </select>
-              <input id="note-txt-${s.id}" placeholder="ملاحظة مخصصة (إن كُتبت تُحفظ بدل القائمة)" value="">
-              <button class="mini ok no-print" onclick="saveNoteRow('${s.id}')">حفظ الملاحظة</button>
+          <div class="fields">
+            ${fieldRow("Hw", s.id, "Hw", s.Hw)}
+            ${fieldRow("Classwork", s.id, "Classwork", s.Classwork)}
+            ${fieldRow("Activity", s.id, "Activity", s.Activity)}
+            ${fieldRow("Research", s.id, "Research", s.Research)}
+            ${fieldRow("Theoretical", s.id, "Theoretical", s.Theoretical)}
+            ${fieldRow("Practical", s.id, "Practical", s.Practical)}
+            ${fieldRow("Absence (لا يحسب)", s.id, "Absence", s.Absence)}
+            <div class="field">
+              <label>نقل إلى فصل</label>
+              <input placeholder="اكتب رقم فصل جديد" id="mv-${s.id}" />
             </div>
-            <div class="muted" style="margin-top:6px">الحالي: <em>${(s.Notes||"لا يوجد")}</em></div>
-          </td>
+          </div>
 
-          <td class="tools no-print">
-            <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
+          <div class="note">
+            <label style="font-size:12px;color:var(--muted)">الملاحظات</label>
+            <select id="note-${s.id}">
+              ${notesOptions(s.Notes || "لا يوجد")}
+            </select>
+          </div>
 
-            <button class="mini ok"    onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
+          <div class="total">المجموع: <span id="tot-${s.id}">${total}</span></div>
 
-            <button class="mini ok"    onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
-
-            <button class="mini ok"    onclick="bump('${s.id}','Research',1)">+ بحث</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
-
-            <button class="mini ok"    onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
-
-            <button class="mini ok"    onclick="bump('${s.id}','Practical',1)">+ عملي</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
-
-            <button class="mini ok"    onclick="bump('${s.id}','Absence',1)">+ غياب</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
-
-            <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
-          </td>
-        </tr>
-      `);
-
-      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="14">لا يوجد نتائج</td></tr>`;
-
-      if(focusId){
-        const row = $("row-"+focusId);
-        if(row) row.scrollIntoView({behavior:"smooth", block:"center"});
-      }
+          <div class="sep"></div>
+          <div class="toolbar">
+            <button class="btn-ghost" data-act="reset" data-id="${s.id}">إلغاء تعديلات البطاقة</button>
+            <button class="btn-danger" data-act="delete" data-id="${s.id}">حذف الطالب</button>
+          </div>
+        </div>
+      `;
     }
+
+    function bindCardHandlers(id){
+      const card = $("card-"+id);
+      // أزرار + و -
+      card.querySelectorAll("button.xbtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const field = btn.dataset.field;
+          const inp = $(`${field}-${id}`);
+          if(!inp) return;
+          if(btn.dataset.act==="inc") inp.stepUp();
+          else inp.stepDown();
+          inp.dispatchEvent(new Event("input"));
+        });
+      });
+      // تغيّر قيمة الحقول الرقمية
+      card.querySelectorAll("input[type=number]").forEach(inp=>{
+        inp.addEventListener("input", ()=>{
+          const field = inp.dataset.field;
+          const v = num(inp.value);
+          // تحديث المجموع مباشر
+          const vals = grabCurrentValues(id);
+          vals[field] = v;
+          const total = computeTotal(vals.Hw, vals.Classwork, vals.Activity, vals.Research, vals.Theoretical, vals.Practical);
+          $("tot-"+id).textContent = total;
+          // سجّل كـ Dirty
+          setDirty(id, { [field]: v, Total: total });
+        });
+      });
+      // تغيير الملاحظة
+      const noteSel = $("note-"+id);
+      if(noteSel){
+        noteSel.addEventListener("change", ()=>{
+          setDirty(id, { Notes: noteSel.value });
+        });
+      }
+      // نقل فصل
+      const mv = $("mv-"+id);
+      if(mv){
+        mv.addEventListener("change", ()=>{
+          if(mv.value.trim()) setDirty(id, { Class: mv.value.trim() });
+        });
+      }
+      // إلغاء تعديلات البطاقة
+      card.querySelectorAll("[data-act=reset]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          clearDirtyFor(id);
+          // أعد تحميل القيم الأصلية من DATA
+          const s = DATA.find(x=>x.id===id);
+          if(!s) return;
+          ["Hw","Classwork","Activity","Research","Theoretical","Practical","Absence"].forEach(k=>{
+            const el = $(`${k}-${id}`); if(el) el.value = num(s[k]);
+          });
+          const nt = $("note-"+id); if(nt) nt.value = s.Notes || "لا يوجد";
+          const mv2= $("mv-"+id);  if(mv2) mv2.value = "";
+          $("tot-"+id).textContent = computeTotal(s.Hw,s.Classwork,s.Activity,s.Research,s.Theoretical,s.Practical);
+        });
+      });
+      // حذف
+      card.querySelectorAll("[data-act=delete]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          if(!confirm("حذف هذا الطالب؟")) return;
+          await setDoc(doc(db,"students",id), { _deleted:true }, { merge:true }); // علامة ناعمة (اختياري)
+          // أو استخدم الحذف الحقيقي:
+          // import { deleteDoc } from 'firebase/firestore'; ثم deleteDoc(doc(db,'students',id))
+          // هنا سنحذفه فعليًا:
+          const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js");
+          await deleteDoc(doc(db,"students",id));
+          DATA = DATA.filter(s=>s.id!==id);
+          clearDirtyFor(id);
+          renderCards();
+          $("count").textContent = DATA.length;
+        });
+      });
+    }
+
+    function grabCurrentValues(id){
+      const get = (k)=> num(($(`${k}-${id}`)||{}).value);
+      return {
+        Hw:get("Hw"), Classwork:get("Classwork"), Activity:get("Activity"),
+        Research:get("Research"), Theoretical:get("Theoretical"), Practical:get("Practical"),
+        Absence:get("Absence")
+      };
+    }
+
+    async function saveAll(){
+      if(DIRTY.size===0){ alert("لا توجد تغييرات"); return; }
+      $("statusMsg").textContent = "جارٍ الحفظ…";
+      // دفعات من 400 عملية
+      const entries = Array.from(DIRTY.entries());
+      for(let i=0;i<entries.length;i+=400){
+        const chunk = entries.slice(i,i+400);
+        const batch = writeBatch(db);
+        for(const [id, partial] of chunk){
+          // احصل على السجل الحالي كي لا نضيع الاسم وغيره
+          const ref = doc(db,"students",id);
+          const snap = await getDoc(ref);
+          const cur = snap.exists() ? snap.data() : {};
+          const merged = {
+            Hw: partial.Hw ?? cur.Hw ?? 0,
+            Classwork: partial.Classwork ?? cur.Classwork ?? 0,
+            Activity: partial.Activity ?? cur.Activity ?? 0,
+            Research: partial.Research ?? cur.Research ?? 0,
+            Theoretical: partial.Theoretical ?? cur.Theoretical ?? 0,
+            Practical: partial.Practical ?? cur.Practical ?? 0,
+            Absence: partial.Absence ?? cur.Absence ?? 0,
+            Class: partial.Class ?? cur.Class ?? CURRENT_CLASS,
+            Notes: partial.Notes ?? cur.Notes ?? "لا يوجد",
+            Name: cur.Name ?? "—",
+            Nid_hash: cur.Nid_hash ?? ""
+          };
+          merged.Total = computeTotal(merged.Hw,merged.Classwork,merged.Activity,merged.Research,merged.Theoretical,merged.Practical);
+          batch.set(ref, merged, { merge:true });
+        }
+        await batch.commit();
+      }
+      $("statusMsg").textContent = "تم الحفظ ✓";
+      // عكس التغييرات في DATA ثم تنظيف الديرتي
+      entries.forEach(([id, p])=>{
+        const idx = DATA.findIndex(x=>x.id===id);
+        if(idx>=0){
+          DATA[idx] = { ...DATA[idx], ...p };
+          DATA[idx].Total = computeTotal(DATA[idx].Hw,DATA[idx].Classwork,DATA[idx].Activity,DATA[idx].Research,DATA[idx].Theoretical,DATA[idx].Practical);
+          if(p.Class) DATA[idx].Class = p.Class;
+          if(p.Notes) DATA[idx].Notes = p.Notes;
+        }
+        clearDirtyFor(id);
+      });
+      renderCards();
+    }
+
+    function exportCsv(){
+      const headers = ["ID","Name","Class","Hw","Classwork","Activity","Research","Theoretical","Practical","Absence","Total","Notes"];
+      const rows = DATA.map(s=>[
+        s.id, safe(s.Name), safe(s.Class), num(s.Hw), num(s.Classwork), num(s.Activity),
+        num(s.Research), num(s.Theoretical), num(s.Practical), num(s.Absence),
+        computeTotal(s.Hw,s.Classwork,s.Activity,s.Research,s.Theoretical,s.Practical),
+        safe(s.Notes||"")
+      ]);
+      const csv = [headers.join(","), ...rows.map(r=>r.map(v=> csvCell(v)).join(","))].join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const cls = CURRENT_CLASS ? `_${CURRENT_CLASS}` : "";
+      a.download = `grades${cls}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function csvCell(v){
+      const s = String(v??"");
+      if(s.includes(",") || s.includes('"') || s.includes("\n")){
+        return `"${s.replace(/"/g,'""')}"`;
+      }
+      return s;
+    }
+    function safe(v){ return (v??"").toString().replace(/\r?\n/g," ").trim(); }
+  </script>
+
+  <script>
+    // polyfill toggle 'hide' class
+    (function(){
+      const css = document.createElement('style');
+      css.textContent = ".hide{display:none !important}";
+      document.head.appendChild(css);
+    })();
   </script>
 </body>
 </html>
