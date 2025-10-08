@@ -25,12 +25,14 @@
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
     .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .toolbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:10px}
-    .grid{display:grid;grid-template-columns:repeat( auto-fill, minmax(260px,1fr) );gap:12px;margin-top:12px}
+
+    /* بطاقات */
+    .grid{display:grid;grid-template-columns:repeat( auto-fill, minmax(320px,1fr) );gap:12px;margin-top:12px}
     .st-card{background:#0f1a2d;border:1px solid #203253;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
     .st-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .pill{border:1px solid #223457;background:#0f1a2d;border-radius:999px;padding:4px 8px;font-size:12px}
     .name{font-weight:700}
-    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .line{height:1px;background:#1a2945;margin:2px 0}
     .actions{display:flex;flex-wrap:wrap;gap:6px}
     .mini{padding:6px 8px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);font-size:13px;cursor:pointer}
@@ -40,32 +42,20 @@
     .total{font-weight:800}
     .hint{font-size:12px;color:var(--muted)}
 
-    /* تحسين العرض على الشاشات الكبيرة */
+    /* أدوات الدرجة: لا التفاف + قياسات أوضح */
+    .score-row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
     @media (min-width:1024px){
       .st-card .in-num{
-        width:72px !important;
+        width:88px !important;
         text-align:center;
         font-size:16px;
         padding:8px 6px;
       }
       .st-card .mini{
-        width:36px;
-        height:36px;
+        width:34px;
+        height:34px;
         font-size:18px;
-        line-height:34px;
-      }
-      .nums{gap:10px}
-      /* شارة توضيح القيمة */
-      .val-preview{
-        margin-inline-start:6px;
-        padding:2px 8px;
-        border-radius:999px;
-        border:1px solid #2b3e66;
-        background:#0f1a2d;
-        font-size:14px;
-        display:inline-block;
-        min-width:32px;
-        text-align:center;
+        line-height:32px;
       }
     }
 
@@ -166,14 +156,10 @@
     const norm= (s)=> (s||"").toString().trim().toLowerCase();
     const computeTotal = (hw,cw,ac,rs,th,pr)=> num(hw)+num(cw)+num(ac)+num(rs)+num(th)+num(pr);
 
-    // قائمة الملاحظات الجاهزة
+    // ملاحظات جاهزة
     const NOTES = [
-      "لا يوجد",
-      "مميز",
-      "لم يسلم أوراق العمل للتصحيح",
-      "كثير الغياب",
-      "عليه أن يكون أكثر جدية",
-      "تحويل إلى الوكيل"
+      "لا يوجد","مميز","لم يسلم أوراق العمل للتصحيح",
+      "كثير الغياب","عليه أن يكون أكثر جدية","تحويل إلى الوكيل"
     ];
     function notesOptionsHTML(selected="لا يوجد"){
       return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
@@ -193,7 +179,7 @@
     };
     $("logoutBtn").onclick = async()=>{ await signOut(auth); };
 
-    // نموذج إضافة/تحديث
+    // حفظ سريع
     $("saveBtn").onclick = async ()=>{
       const id = norm($("st_id").value);
       if(!id){ alert("أدخل Document ID"); return; }
@@ -230,7 +216,6 @@
       $("st_notes").value = "لا يوجد";
     }
 
-    // تحميل كرود بطاقات
     async function loadCards(focusId){
       const klass  = $("filterClass").value.trim();
       const search = norm($("searchInput").value);
@@ -247,20 +232,15 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
-      if(!arr.length){
-        $("cardsWrap").innerHTML = `<div class="muted">لا يوجد طلاب</div>`;
-        return;
-      }
-
-      $("cardsWrap").innerHTML = arr.map(s => cardHTML(s)).join("");
+      $("cardsWrap").innerHTML = arr.length
+        ? arr.map(s => cardHTML(s)).join("")
+        : `<div class="muted">لا يوجد طلاب</div>`;
 
       if(focusId){
         const el = document.querySelector(`[data-id="${focusId}"]`);
         if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
       }
-
       bindCardEvents();
-      addValueChips(); // الشارات على الديسكتوب
     }
 
     function cardHTML(s){
@@ -323,9 +303,9 @@
       return `
         <div style="display:flex;flex-direction:column;gap:6px">
           <div class="muted">${label}</div>
-          <div style="display:flex;gap:6px;align-items:center">
+          <div class="score-row">
             <button class="mini ghost minus" data-field="${field}">−</button>
-            <input type="number" class="in-num" data-field="${field}" value="${v}" style="width:100%">
+            <input type="number" class="in-num" data-field="${field}" value="${v}">
             <button class="mini ok plus" data-field="${field}">+</button>
           </div>
         </div>
@@ -406,22 +386,6 @@
           await deleteDoc(doc(db,"students",id));
           card.remove();
         };
-      });
-    }
-
-    // الشارات التي تعرض القيمة بجانب الحقول (تظهر على الديسكتوب فقط)
-    function addValueChips(){
-      const isDesktop = window.matchMedia("(min-width:1024px)").matches;
-      if(!isDesktop) return;
-
-      document.querySelectorAll('.st-card input.in-num').forEach(inp=>{
-        // لا تكرر الشارة
-        if (inp.nextElementSibling && inp.nextElementSibling.classList?.contains('val-preview')) return;
-        const chip = document.createElement('span');
-        chip.className = 'val-preview';
-        chip.textContent = inp.value || '0';
-        inp.insertAdjacentElement('afterend', chip);
-        inp.addEventListener('input', ()=> chip.textContent = inp.value || '0');
       });
     }
   </script>
