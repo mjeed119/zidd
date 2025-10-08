@@ -2,16 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>لوحة المشرف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لوحة المشرف — Dashboard</title>
   <style>
-    :root {
-      --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
-      --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945;
-      /* عرض أعمدة لاصقة (للثبات وقت السحب يمين/يسار) */
-      --idw: 140px;   /* عرض عمود الـID */
-      --namew: 240px; /* عرض عمود الاسم */
-    }
+    :root { --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1; --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945; }
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
     body{margin:0;background:var(--bg);color:var(--ink)}
     header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
@@ -19,12 +13,9 @@
     header .right{display:flex;gap:8px;align-items:center}
     main{max-width:1200px;margin:26px auto;padding:0 16px}
     .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
-    .row{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:10px}
-    input,button,textarea,select{
-      width:100%;padding:12px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);
-      font-size:16px
-    }
-    textarea{min-height:110px;resize:vertical}
+    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+    input,button,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    textarea{min-height:120px;resize:vertical}
     input::placeholder,textarea::placeholder{color:#6d85aa}
     button{cursor:pointer}
     .primary{background:var(--accent);border-color:#3f70cc}
@@ -32,49 +23,27 @@
     .ghost{background:#0f1a2d}
     .ok{background:var(--ok);border-color:#22b063}
     .muted{color:var(--muted)}
-    .mini{padding:8px 10px;border-radius:8px;font-size:14px}
-    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457;display:inline-block;min-width:var(--idw);text-align:center}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+    th{color:#b9cae6;background:#0f192c;position:sticky;top:0;z-index:1}
+    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457;white-space:nowrap}
     .hide{display:none}
     a.link{color:#8fb6ff;text-decoration:none}
-
-    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1200px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;background:transparent}
-    thead th{color:#b9cae6;background:#0f192c;position:sticky;top:0;z-index:5}
-    /* أعمدة لاصقة (ID + الاسم) */
-    .sticky-id, .sticky-name { position:sticky; z-index:4; background:var(--card) }
-    .sticky-id  { left: 0;                min-width:var(--idw); }
-    .sticky-name{ left: calc(var(--idw)); min-width:var(--namew); text-align:right; padding-right:12px }
-    /* لاصق لرأس الأعمدة الأولى */
-    th.sticky-id{ z-index:6 }
-    th.sticky-name{ z-index:6 }
-
-    /* شريط الأدوات داخل الجدول على الموبايل */
-    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-    .col-narrow{min-width:90px}
-    .col-wide{min-width:160px}
-
-    /* تحسينات الطباعة */
+    .mini{padding:6px 10px;border-radius:8px}
+    .notes-wrap{display:flex;gap:6px;align-items:center;justify-content:center}
+    .notes-wrap select{min-width:140px}
+    .notes-wrap input{min-width:160px}
+    @media (max-width:720px){
+      .notes-wrap{flex-direction:column;align-items:stretch}
+      table{font-size:14px}
+    }
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
-      select{appearance:none;border:none}
-    }
-
-    /* تكيّف الجوال */
-    @media (max-width: 1024px){
-      .row{grid-template-columns:repeat(2, minmax(0,1fr))}
-      .mini{padding:10px 12px}
-      :root{ --namew: 200px; }
-    }
-    @media (max-width: 640px){
-      header h1{font-size:16px}
-      .row{grid-template-columns:1fr}
-      input,button,textarea,select{font-size:15px;padding:12px}
-      :root{ --idw: 120px; --namew: 200px; }
-      table{min-width:1000px}
+      select,input{border:none}
     }
   </style>
 </head>
@@ -91,7 +60,7 @@
   <main>
     <!-- تسجيل الدخول -->
     <section id="loginView" class="card">
-      <h2 style="margin-top:0">تسجيل الدخول</h2>
+      <h2>تسجيل الدخول</h2>
       <div class="row">
         <input id="email" type="email" placeholder="البريد الإلكتروني"/>
         <input id="password" type="password" placeholder="كلمة المرور"/>
@@ -107,7 +76,7 @@
     <section id="panelView" class="hide">
       <!-- إضافة / تحديث طالب -->
       <div class="card no-print">
-        <h3 style="margin-top:0">إضافة / تحديث طالب</h3>
+        <h3>إضافة / تحديث طالب</h3>
         <div class="row">
           <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
           <input id="st_name" placeholder="الاسم" />
@@ -122,10 +91,13 @@
         </div>
         <div class="row">
           <input id="st_theoretical" type="number" placeholder="Theoretical" />
-          <input id="st_practical" type="number" placeholder="Practical" />
+          <input id="st_practical"   type="number" placeholder="Practical" />
           <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <!-- ملاحظات جاهزة -->
-          <select id="st_notes"></select>
+          <!-- الملاحظات: قائمة + ملاحظة مخصصة -->
+          <div class="notes-wrap">
+            <select id="st_notes_sel"></select>
+            <input id="st_notes_custom" placeholder="اكتب ملاحظة مخصصة (تتغلب على القائمة)" />
+          </div>
         </div>
         <div class="row">
           <button class="ok" id="saveBtn">حفظ / تحديث</button>
@@ -144,26 +116,26 @@
         </div>
       </div>
 
-      <!-- جدول الطلاب (متحرك أفقيًا + أعمدة لاصقة) -->
-      <div class="card table-wrap">
-        <h3 style="margin-top:0">قائمة الطلاب</h3>
+      <!-- جدول الطلاب -->
+      <div class="card" style="overflow:auto">
+        <h3>قائمة الطلاب</h3>
         <table>
           <thead>
             <tr>
-              <th class="sticky-id">ID</th>
-              <th class="sticky-name">الاسم</th>
+              <th>ID</th>
+              <th>الاسم</th>
               <th>الفصل</th>
               <th class="no-print">نقل للفصل</th>
-              <th class="col-narrow">Hw</th>
-              <th class="col-narrow">Classwork</th>
-              <th class="col-narrow">Activity</th>
-              <th class="col-narrow">Research</th>
-              <th class="col-narrow">Theoretical</th>
-              <th class="col-narrow">Practical</th>
-              <th class="col-narrow">الغياب</th>
-              <th class="col-narrow">المجموع</th>
-              <th class="col-wide">ملاحظات</th>
-              <th class="no-print col-wide">إجراءات</th>
+              <th>Hw</th>
+              <th>Classwork</th>
+              <th>Activity</th>
+              <th>Research</th>
+              <th>Theoretical</th>
+              <th>Practical</th>
+              <th>الغياب</th>
+              <th>المجموع</th>
+              <th>الملاحظات (جاهزة + مخصصة)</th>
+              <th class="no-print">إجراءات</th>
             </tr>
           </thead>
           <tbody id="studentsBody"></tbody>
@@ -209,11 +181,13 @@
       "عليه أن يكون أكثر جدية",
       "تحويل إلى الوكيل"
     ];
-    function notesOptionsHTML(selected="لا يوجد"){
-      return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
-    }
+    const notesOptionsHTML = (selected="") =>
+      NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
+
     // تعبئة قائمة نموذج الإضافة
-    (function fillNotesSelect(){ $("st_notes").innerHTML = notesOptionsHTML("لا يوجد"); })();
+    (function fillNotesSelect(){
+      $("st_notes_sel").innerHTML = notesOptionsHTML("لا يوجد");
+    })();
 
     /* Auth */
     onAuthStateChanged(auth,(user)=>{
@@ -233,6 +207,10 @@
     $("clearBtn").onclick = clearForm;
 
     function collectStudentForm(){
+      // لو فيه ملاحظة مخصصة نستخدمها، وإلا نستخدم من القائمة
+      const customNote = $("st_notes_custom").value.trim();
+      const note = customNote || $("st_notes_sel").value || "لا يوجد";
+
       const data = {
         Name: $("st_name").value.trim(),
         Nid_hash: $("st_nid").value.trim(),
@@ -244,7 +222,7 @@
         Theoretical: num($("st_theoretical").value),
         Practical: num($("st_practical").value),
         Absence: num($("st_absence").value),
-        Notes: $("st_notes").value || "لا يوجد"
+        Notes: note
       };
       data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
       return data;
@@ -261,8 +239,8 @@
     }
 
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence"].forEach(id => $(id).value="");
-      $("st_notes").value = "لا يوجد";
+      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes_custom"].forEach(id => $(id).value="");
+      $("st_notes_sel").value = "لا يوجد";
     }
 
     /* === CRUD من الجدول === */
@@ -296,12 +274,17 @@
       loadStudents(id);
     };
 
-    // تغيير الملاحظة من الجدول
-    window.setNote = async (id, val) => {
-      await setDoc(doc(db,"students",id), { Notes: val }, { merge:true });
+    // تغيير الملاحظة (اختيار جاهز + حقل مخصّص لكل صف)
+    window.saveNoteRow = async (id) => {
+      const sel = document.getElementById('note-sel-'+id);
+      const txt = document.getElementById('note-txt-'+id);
+      const note = (txt?.value.trim()) || (sel?.value || "لا يوجد");
+      await setDoc(doc(db,"students",id), { Notes: note }, { merge:true });
+      if (txt) { txt.style.borderColor = "#22b063"; setTimeout(()=> txt.style.borderColor="#243756", 700); }
+      if (sel) { sel.style.borderColor = "#22b063"; setTimeout(()=> sel.style.borderColor="#243756", 700); }
     };
 
-    // نقل الطالب لفصل آخر (من عمود "نقل للفصل")
+    // نقل الطالب لفصل آخر
     window.moveClass = async (id) => {
       const sel = document.getElementById('mv-'+id);
       const manual = document.getElementById('mvtext-'+id);
@@ -312,7 +295,7 @@
       loadStudents(id);
     };
 
-    /* === عرض القائمة (فلترة + بحث + تكيّف) === */
+    /* === عرض القائمة (فلترة + بحث + قوائم الفصول) === */
     $("filterClass").addEventListener("input", ()=> loadStudents());
     $("searchInput").addEventListener("input", ()=> loadStudents());
     $("refreshBtn").addEventListener("click", ()=> loadStudents());
@@ -338,7 +321,7 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
-      // قائمة الفصول المتاحة لاختيار "نقل للفصل"
+      // استخرج قائمة الفصول
       const classSet = new Set();
       arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
       const classList = Array.from(classSet).sort(coll.compare);
@@ -349,51 +332,62 @@
 
       const rows = arr.map(s => `
         <tr id="row-${s.id}">
-          <td class="sticky-id"><span class="pill">${s.id}</span></td>
-          <td class="sticky-name">${s.Name||""}</td>
-
+          <td class="pill">${s.id}</td>
+          <td>${s.Name||""}</td>
           <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
 
           <!-- عمود نقل للفصل -->
-          <td class="no-print" style="min-width:220px">
-            <div style="display:flex;gap:6px;align-items:center;justify-content:center">
-              <select id="mv-${s.id}" style="width:110px">${classOptionsHTML(s.Class||"")}</select>
-              <input id="mvtext-${s.id}" placeholder="اكتب فصل جديد" style="width:120px" />
-              <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
-            </div>
-          </td>
-
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
-          <td class="col-narrow"><strong>${num(s.Total)}</strong></td>
-
-          <!-- ملاحظات: قائمة جاهزة تحفظ عند التغيير -->
-          <td class="col-wide">
-            <select onchange="setNote('${s.id}', this.value)">
-              ${notesOptionsHTML(s.Notes || "لا يوجد")}
+          <td class="no-print" style="min-width:220px;display:flex;gap:6px;align-items:center;justify-content:center">
+            <select id="mv-${s.id}" style="width:110px">
+              ${classOptionsHTML(s.Class||"")}
             </select>
+            <input id="mvtext-${s.id}" placeholder="أو اكتب فصل جديد" style="width:120px" />
+            <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
           </td>
 
-          <td class="tools no-print col-wide">
+          <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
+          <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
+          <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
+          <td contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
+          <td contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
+          <td contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
+          <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
+          <td><strong>${num(s.Total)}</strong></td>
+
+          <!-- الملاحظات: قائمة + حقل مخصص لكل صف -->
+          <td>
+            <div class="notes-wrap">
+              <select id="note-sel-${s.id}">
+                ${notesOptionsHTML(s.Notes || "لا يوجد")}
+              </select>
+              <input id="note-txt-${s.id}" placeholder="ملاحظة مخصصة (إن كُتبت تُحفظ بدل القائمة)" value="">
+              <button class="mini ok no-print" onclick="saveNoteRow('${s.id}')">حفظ الملاحظة</button>
+            </div>
+            <div class="muted" style="margin-top:6px">الحالي: <em>${(s.Notes||"لا يوجد")}</em></div>
+          </td>
+
+          <td class="tools no-print">
             <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
             <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Research',1)">+ بحث</button>
             <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
             <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Practical',1)">+ عملي</button>
             <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
+
             <button class="mini ok"    onclick="bump('${s.id}','Absence',1)">+ غياب</button>
             <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
+
             <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
           </td>
         </tr>
