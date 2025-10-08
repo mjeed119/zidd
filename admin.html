@@ -25,38 +25,49 @@
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
     .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .toolbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:10px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(360px,1fr));gap:12px;margin-top:12px}
+
+    /* الشبكة والبطاقة — مُكَبّرة لسطح المكتب */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(460px, 1fr));
+      gap:14px;
+      margin-top:12px;
+    }
     .st-card{
       background:#0f1a2d;border:1px solid #203253;border-radius:14px;
-      padding:12px;display:flex;flex-direction:column;gap:10px;
-      min-width:360px;overflow:hidden;
+      padding:14px;display:flex;flex-direction:column;gap:12px;
+      min-width:460px;overflow:hidden;
     }
+
     .st-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .pill{border:1px solid #223457;background:#0f1a2d;border-radius:999px;padding:4px 8px;font-size:12px}
     .name{font-weight:700}
-    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .line{height:1px;background:#1a2945;margin:2px 0}
-    .actions{display:flex;flex-wrap:wrap;gap:6px}
+    .actions{display:flex;flex-wrap:wrap;gap:8px}
     .mini{padding:6px 8px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);font-size:13px;cursor:pointer}
     .mini.ok{background:#173a28;border-color:#2b6b49}
     .mini.ghost{background:#0f1a2d}
-    .note-wrap{display:flex;gap:6px}
+    .note-wrap{display:flex;gap:8px}
     .total{font-weight:800}
     .hint{font-size:12px;color:var(--muted)}
 
-    /* صف الدرجات بثلاث أعمدة ثابتة */
+    /* صف الدرجات بثلاث أعمدة مريحة للرؤية */
     .score-row{
       display:grid;
-      grid-template-columns:40px minmax(96px,120px) 40px;
-      gap:6px; align-items:center;
+      grid-template-columns: 56px minmax(130px, 180px) 56px;
+      gap:10px; align-items:center;
     }
-    .st-card .mini{ width:40px; height:40px; font-size:18px; line-height:38px; }
-    .st-card .in-num{ width:100%; text-align:center; font-size:16px; padding:10px 6px; }
+    .st-card .mini{ width:56px; height:46px; font-size:18px; line-height:44px; }
+    .st-card .in-num{ width:100%; text-align:center; font-size:18px; padding:12px 8px; }
 
     /* إخفاء أسهم الأرقام */
     input[type=number]::-webkit-outer-spin-button,
     input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
     input[type=number]{ -moz-appearance:textfield }
+
+    /* ملاحظات تتمدد */
+    .note-wrap select, .note-wrap input{ flex:1; min-width:0; }
 
     /* الطباعة: صفحة لكل فصل */
     @media print{
@@ -66,63 +77,31 @@
       .class-break{ page-break-after:always; }
     }
 
+    /* تكيّف تابلت */
     @media (max-width:900px){
       .row{grid-template-columns:repeat(2,minmax(0,1fr))}
       .toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .grid{ grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }
+      .grid{ grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); }
+      .st-card{ min-width:360px; }
+      .score-row{ grid-template-columns:52px minmax(120px, 160px) 52px; gap:8px; }
     }
+
+    /* جوال */
     @media (max-width:520px){
       .row{grid-template-columns:1fr}
       .toolbar{grid-template-columns:1fr}
       .nums{grid-template-columns:repeat(2,1fr)}
       .grid{ grid-template-columns:1fr; }
+      .st-card{ min-width:auto; }
+      .score-row{ grid-template-columns:48px minmax(110px, 1fr) 48px; gap:8px; }
     }
-    /* حجم الشبكة والبطاقة على الديسكتوب */
-.grid{
-  /* كانت 360px — خلّيناها أعرض */
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap:12px;
-  margin-top:12px;
-}
-.st-card{
-  min-width:420px;       /* كانت 360px */
-}
 
-/* كبّر صف التحكم بالدرجة */
-.score-row{
-  /* كانت 40 / 96-120 / 40  -> كبرنا الأزرار والحقل */
-  display:grid;
-  grid-template-columns: 52px minmax(120px, 160px) 52px;
-  gap:8px;
-  align-items:center;
-}
-
-/* كبّر أزرار +/- وحقل الرقم */
-.st-card .mini{
-  width:52px; height:44px;
-  font-size:18px; line-height:42px;
-}
-.st-card .in-num{
-  width:100%;
-  text-align:center;
-  font-size:18px;
-  padding:12px 8px;
-}
-
-/* خليه يتمدد مع الشاشة الكبيرة أكثر */
-@media (min-width: 1280px){
-  .grid{
-    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
-  }
-  .st-card{ min-width:480px; }
-}
-
-/* ملاحظات: خلهما يتمددا */
-.note-wrap select,
-.note-wrap input{
-  flex:1; min-width:0;
-}
+    /* شاشات كبيرة جداً */
+    @media (min-width:1400px){
+      .grid{ grid-template-columns:repeat(auto-fill, minmax(520px,1fr)); }
+      .st-card{ min-width:520px; }
+      .score-row{ grid-template-columns:60px minmax(150px, 200px) 60px; }
+    }
   </style>
 </head>
 <body>
@@ -314,7 +293,7 @@
       if(search){
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
-      LAST_DATA = arr; // للاكسبورت والطباعة
+      LAST_DATA = arr;
 
       if(!arr.length){
         $("cardsWrap").innerHTML = `<div class="muted">لا يوجد طلاب</div>`;
@@ -338,7 +317,9 @@
           <div class="st-head">
             <div>
               <div class="name">${s.Name||""}</div>
-              <div class="muted">ID: <span class="pill">${s.id}</span> • فصل: <input class="in-class" value="${s.Class||""}" placeholder="الفصل" style="width:80px;display:inline-block"></div>
+              <div class="muted">ID: <span class="pill">${s.id}</span> • فصل:
+                <input class="in-class" value="${s.Class||""}" placeholder="الفصل" style="width:90px;display:inline-block">
+              </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center">
               <button class="mini ghost mv-btn" title="نقل للفصل">نقل</button>
@@ -500,10 +481,7 @@
 
     /* =================== طباعة PDF حسب الفصل =================== */
     function printPerClass(){
-      // عند الطباعة، يكفي فلترة الفصل قبل الطباعة. لكن لتقسيم كل فصل بصفحة:
-      // سنضيف فواصل صفحية غير مرئية بين مجموعات الفصول (للبيانات الظاهرة حالياً).
       const wrap=$("cardsWrap");
-      // أزل فواصل سابقة
       wrap.querySelectorAll(".class-break").forEach(el=>el.remove());
       if(!LAST_DATA.length){ window.print(); return; }
       const groups = new Map();
@@ -512,7 +490,6 @@
         if(!groups.has(k)) groups.set(k,[]);
         groups.get(k).push(s.id);
       });
-      // أضف فاصل بعد آخر بطاقة لكل فصل
       groups.forEach(ids=>{
         const lastId=ids[ids.length-1];
         const lastCard=wrap.querySelector(`.st-card[data-id="${lastId}"]`);
