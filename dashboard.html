@@ -36,6 +36,7 @@
     .notes-wrap input{min-width:160px}
     @media (max-width:720px){
       .notes-wrap{flex-direction:column;align-items:stretch}
+      table{font-size:14px}
     }
     @media print{
       header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
@@ -180,9 +181,9 @@
       "عليه أن يكون أكثر جدية",
       "تحويل إلى الوكيل"
     ];
-    function notesOptionsHTML(selected=""){
-      return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
-    }
+    const notesOptionsHTML = (selected="") =>
+      NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
+
     // تعبئة قائمة نموذج الإضافة
     (function fillNotesSelect(){
       $("st_notes_sel").innerHTML = notesOptionsHTML("لا يوجد");
@@ -279,7 +280,6 @@
       const txt = document.getElementById('note-txt-'+id);
       const note = (txt?.value.trim()) || (sel?.value || "لا يوجد");
       await setDoc(doc(db,"students",id), { Notes: note }, { merge:true });
-      // اختياري: عرض وميض نجاح بسيط
       if (txt) { txt.style.borderColor = "#22b063"; setTimeout(()=> txt.style.borderColor="#243756", 700); }
       if (sel) { sel.style.borderColor = "#22b063"; setTimeout(()=> sel.style.borderColor="#243756", 700); }
     };
