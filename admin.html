@@ -77,6 +77,52 @@
       .nums{grid-template-columns:repeat(2,1fr)}
       .grid{ grid-template-columns:1fr; }
     }
+    /* حجم الشبكة والبطاقة على الديسكتوب */
+.grid{
+  /* كانت 360px — خلّيناها أعرض */
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.st-card{
+  min-width:420px;       /* كانت 360px */
+}
+
+/* كبّر صف التحكم بالدرجة */
+.score-row{
+  /* كانت 40 / 96-120 / 40  -> كبرنا الأزرار والحقل */
+  display:grid;
+  grid-template-columns: 52px minmax(120px, 160px) 52px;
+  gap:8px;
+  align-items:center;
+}
+
+/* كبّر أزرار +/- وحقل الرقم */
+.st-card .mini{
+  width:52px; height:44px;
+  font-size:18px; line-height:42px;
+}
+.st-card .in-num{
+  width:100%;
+  text-align:center;
+  font-size:18px;
+  padding:12px 8px;
+}
+
+/* خليه يتمدد مع الشاشة الكبيرة أكثر */
+@media (min-width: 1280px){
+  .grid{
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  }
+  .st-card{ min-width:480px; }
+}
+
+/* ملاحظات: خلهما يتمددا */
+.note-wrap select,
+.note-wrap input{
+  flex:1; min-width:0;
+}
   </style>
 </head>
 <body>
