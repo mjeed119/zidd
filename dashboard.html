@@ -35,9 +35,8 @@
       body{ background:#fff; color:#000; }
       .card{ border:none; box-shadow:none; }
       th,td{ border:1px solid #999; }
-      select,input{appearance:none;border:none}
+      select{appearance:none;border:none}
     }
-    .note-wrap{display:flex;gap:6px;align-items:center;justify-content:center}
   </style>
 </head>
 
@@ -86,9 +85,9 @@
           <input id="st_theoretical" type="number" placeholder="Theoretical" />
           <input id="st_practical"   type="number" placeholder="Practical" />
           <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <!-- ملاحظات: قائمة + ملاحظة يدوية -->
+          <!-- ملاحظات جاهزة + ملاحظة إضافية -->
           <select id="st_notes"></select>
-          <input id="st_notes_custom" placeholder="ملاحظة إضافية (اختياري)" />
+          <input id="st_extra_note" placeholder="ملاحظة إضافية (اختياري)" />
         </div>
         <div class="row">
           <button class="ok" id="saveBtn">حفظ / تحديث</button>
@@ -116,6 +115,7 @@
               <th>ID</th>
               <th>الاسم</th>
               <th>الفصل</th>
+              <th class="no-print">نقل للفصل</th>
               <th>Hw</th>
               <th>Classwork</th>
               <th>Activity</th>
@@ -125,6 +125,7 @@
               <th>الغياب</th>
               <th>المجموع</th>
               <th>ملاحظات</th>
+              <th>ملاحظة إضافية</th>
               <th class="no-print">إجراءات</th>
             </tr>
           </thead>
@@ -174,20 +175,9 @@
     function notesOptionsHTML(selected=""){
       return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
     }
-    // تعبئة قائمة نموذج الإضافة
     (function fillNotesSelect(){
       $("st_notes").innerHTML = notesOptionsHTML("لا يوجد");
     })();
-
-    // دالة دمج الملاحظات (جاهزة + يدوية) في نص واحد داخل Notes
-    function mergeNotes(preset, custom){
-      const p = (preset||"").trim();
-      const c = (custom||"").trim();
-      if(p && p !== "لا يوجد" && c) return `${p} — ${c}`;
-      if(p && p !== "لا يوجد")     return p;
-      if(c)                         return c;
-      return "لا يوجد";
-    }
 
     /* Auth */
     onAuthStateChanged(auth,(user)=>{
@@ -202,13 +192,11 @@
     };
     $("logoutBtn").onclick = async()=>{ await signOut(auth); };
 
-    /* === إضافة/تحديث طالب يدوي === */
+    /* إضافة/تحديث طالب */
     $("saveBtn").onclick = saveStudent;
     $("clearBtn").onclick = clearForm;
 
     function collectStudentForm(){
-      const preset = $("st_notes").value;
-      const custom = $("st_notes_custom").value;
       const data = {
         Name: $("st_name").value.trim(),
         Nid_hash: $("st_nid").value.trim(),
@@ -220,7 +208,8 @@
         Theoretical: num($("st_theoretical").value),
         Practical: num($("st_practical").value),
         Absence: num($("st_absence").value),
-        Notes: mergeNotes(preset, custom)
+        Notes: $("st_notes").value || "لا يوجد",
+        ExtraNote: $("st_extra_note").value.trim() || ""   // << جديد
       };
       data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
       return data;
@@ -237,18 +226,18 @@
     }
 
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_notes_custom"].forEach(id => $(id).value="");
+      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","st_extra_note"].forEach(id => $(id).value="");
       $("st_notes").value = "لا يوجد";
     }
 
-    /* === CRUD من الجدول === */
+    /* CRUD من الجدول */
     window.deleteStudent = async(id)=>{
       if(!confirm("حذف الطالب؟")) return;
       await deleteDoc(doc(db,"students",id));
       loadStudents();
     };
 
-    // تعديل مباشر داخل الخلية الرقمية أو الفصل
+    // تعديل مباشر للأرقام أو للفصل
     window.edit = async(id, field, td)=>{
       const ref = doc(db,"students",id);
       const snap = await getDoc(ref);
@@ -258,6 +247,13 @@
       data.Total  = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
       await setDoc(ref, data, { merge:true });
       loadStudents(id);
+    };
+
+    // تعديل نصّي عام (للخلايا النصية مثل ExtraNote)
+    window.editText = async(id, field, td)=>{
+      const val = td.textContent.trim();
+      await setDoc(doc(db,"students",id), { [field]: val }, { merge:true });
+      // لا حاجة لإعادة التحميل هنا
     };
 
     // أسهم زيادة/نقصان
@@ -272,16 +268,23 @@
       loadStudents(id);
     };
 
-    // تغيير الملاحظة من الصف (قائمة + نص يدوي بجانبها)
-    window.setNoteCombo = async (id) => {
-      const sel = document.getElementById('noteSel-'+id);
-      const inp = document.getElementById('noteTxt-'+id);
-      const merged = mergeNotes(sel?.value||"", inp?.value||"");
-      await setDoc(doc(db,"students",id), { Notes: merged }, { merge:true });
-      // ما نعيد التحميل حفاظًا على السرعة؛ إذا حاب: loadStudents(id);
+    // تغيير الملاحظة الجاهزة
+    window.setNote = async (id, val) => {
+      await setDoc(doc(db,"students",id), { Notes: val }, { merge:true });
     };
 
-    /* === عرض القائمة (فلترة + بحث) === */
+    // نقل الطالب لفصل آخر
+    window.moveClass = async (id) => {
+      const sel = document.getElementById('mv-'+id);
+      const manual = document.getElementById('mvtext-'+id);
+      const newClass = (manual?.value || sel?.value || '').trim();
+      if(!newClass){ alert('اختر فصلًا من القائمة أو اكتب فصلًا جديدًا'); return; }
+      await setDoc(doc(db, 'students', id), { Class: newClass }, { merge: true });
+      if (manual) manual.value = '';
+      loadStudents(id);
+    };
+
+    /* عرض القائمة */
     $("filterClass").addEventListener("input", ()=> loadStudents());
     $("searchInput").addEventListener("input", ()=> loadStudents());
     $("refreshBtn").addEventListener("click", ()=> loadStudents());
@@ -290,7 +293,7 @@
     async function loadStudents(focusId){
       const klass  = $("filterClass").value.trim();
       const search = norm($("searchInput").value);
-      $("studentsBody").innerHTML = "<tr><td colspan='13'>جاري التحميل…</td></tr>";
+      $("studentsBody").innerHTML = "<tr><td colspan='15'>جاري التحميل…</td></tr>";
 
       const base = collection(db,"students");
       const qy   = klass ? query(base, where("Class","==",klass)) : base;
@@ -307,11 +310,30 @@
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
+      // قائمة الفصول
+      const classSet = new Set();
+      arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
+      const classList = Array.from(classSet).sort(coll.compare);
+      const classOptionsHTML = (current) =>
+        ['<option value="">— اختر —</option>']
+          .concat(classList.map(c => `<option value="${c}" ${String(current)===String(c)?'selected':''}>${c}</option>`))
+          .join('');
+
       const rows = arr.map(s => `
         <tr id="row-${s.id}">
           <td class="pill">${s.id}</td>
           <td>${s.Name||""}</td>
           <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
+
+          <!-- عمود نقل للفصل -->
+          <td class="no-print" style="min-width:220px;display:flex;gap:6px;align-items:center;justify-content:center">
+            <select id="mv-${s.id}" style="width:110px">
+              ${classOptionsHTML(s.Class||"")}
+            </select>
+            <input id="mvtext-${s.id}" placeholder="أو اكتب فصل جديد" style="width:120px" />
+            <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
+          </td>
+
           <td contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
           <td contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
           <td contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
@@ -321,28 +343,15 @@
           <td contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
           <td><strong>${num(s.Total)}</strong></td>
 
-          <!-- ملاحظات: قائمة + نص يدوي ثم زر حفظ صغير -->
+          <!-- ملاحظات جاهزة -->
           <td>
-            <div class="note-wrap">
-              <select id="noteSel-${s.id}">
-                ${notesOptionsHTML(
-                  // إذا الـNotes يطابق أحد الجاهزة تمامًا نختاره، وإلا نخلي "لا يوجد" ويقدر يكتب نص يدوي
-                  NOTES.includes(s.Notes||"") ? (s.Notes||"لا يوجد") : "لا يوجد"
-                )}
-              </select>
-              <input id="noteTxt-${s.id}" placeholder="ملاحظة إضافية" value="${
-                // إذا الـNotes ليس من الجاهزة، نحاول نعرض الجزء اليدوي
-                (()=> {
-                  const n = s.Notes||"";
-                  if (NOTES.includes(n)) return "";
-                  // إذا كان مركّب "جاهزة — يدوي" نأخذ ما بعد الشرطة
-                  const parts = n.split(" — ");
-                  return (parts.length>1 ? parts.slice(1).join(" — ") : n).replace(/"/g,"&quot;");
-                })()
-              }" />
-              <button class="mini primary" onclick="setNoteCombo('${s.id}')">حفظ</button>
-            </div>
+            <select onchange="setNote('${s.id}', this.value)">
+              ${notesOptionsHTML(s.Notes || "لا يوجد")}
+            </select>
           </td>
+
+          <!-- ملاحظة إضافية (تحرير مباشر نصّي) -->
+          <td contenteditable onblur="editText('${s.id}','ExtraNote',this)">${(s.ExtraNote||"")}</td>
 
           <td class="tools no-print">
             <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
@@ -371,7 +380,7 @@
         </tr>
       `);
 
-      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="13">لا يوجد نتائج</td></tr>`;
+      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="15">لا يوجد نتائج</td></tr>`;
 
       if(focusId){
         const row = $("row-"+focusId);
