@@ -2,183 +2,119 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>لوحة المشرف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>لوحة المشرف — بطاقات</title>
   <style>
-    :root {
+    :root{
       --bg:#0b1220; --card:#101a2b; --ink:#e8f0ff; --muted:#9fb3d1;
       --accent:#4f8cff; --danger:#ff5d5d; --ok:#2ecc71; --line:#1a2945;
-      /* عرض أعمدة لاصقة (للثبات وقت السحب يمين/يسار) */
-      --idw: 140px;   /* عرض عمود الـID */
-      --namew: 240px; /* عرض عمود الاسم */
     }
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
     body{margin:0;background:var(--bg);color:var(--ink)}
     header{padding:18px 20px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
     header h1{font-size:18px;margin:0}
-    header .right{display:flex;gap:8px;align-items:center}
-    main{max-width:1200px;margin:26px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid #14213b;border-radius:14px;padding:16px;margin-bottom:16px}
-    .row{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:10px}
-    input,button,textarea,select{
-      width:100%;padding:12px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);
-      font-size:16px
-    }
-    textarea{min-height:110px;resize:vertical}
-    input::placeholder,textarea::placeholder{color:#6d85aa}
-    button{cursor:pointer}
-    .primary{background:var(--accent);border-color:#3f70cc}
-    .danger{background:var(--danger);border-color:#d94d4d}
-    .ghost{background:#0f1a2d}
-    .ok{background:var(--ok);border-color:#22b063}
     .muted{color:var(--muted)}
-    .mini{padding:8px 10px;border-radius:8px;font-size:14px}
-    .pill{padding:6px 10px;border-radius:999px;background:#0f1a2d;border:1px solid #223457;display:inline-block;min-width:var(--idw);text-align:center}
-    .hide{display:none}
-    a.link{color:#8fb6ff;text-decoration:none}
-
-    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1200px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;background:transparent}
-    thead th{color:#b9cae6;background:#0f192c;position:sticky;top:0;z-index:5}
-    /* أعمدة لاصقة (ID + الاسم) */
-    .sticky-id, .sticky-name { position:sticky; z-index:4; background:var(--card) }
-    .sticky-id  { left: 0;                min-width:var(--idw); }
-    .sticky-name{ left: calc(var(--idw)); min-width:var(--namew); text-align:right; padding-right:12px }
-    /* لاصق لرأس الأعمدة الأولى */
-    th.sticky-id{ z-index:6 }
-    th.sticky-name{ z-index:6 }
-
-    /* شريط الأدوات داخل الجدول على الموبايل */
-    .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-    .col-narrow{min-width:90px}
-    .col-wide{min-width:160px}
-
-    /* تحسينات الطباعة */
-    @media print{
-      header,.no-print,.row .ghost,.row .primary,.row .ok,.row .danger{ display:none !important; }
-      body{ background:#fff; color:#000; }
-      .card{ border:none; box-shadow:none; }
-      th,td{ border:1px solid #999; }
-      select{appearance:none;border:none}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:#3f70cc}
+    .btn.ok{background:var(--ok);border-color:#22b063}
+    .btn.danger{background:var(--danger);border-color:#d94d4d}
+    .btn.ghost{background:#0f1a2d}
+    input,select,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    input::placeholder,textarea::placeholder{color:#6d85aa}
+    main{max-width:1200px;margin:24px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .toolbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:10px}
+    .grid{display:grid;grid-template-columns:repeat( auto-fill, minmax(260px,1fr) );gap:12px;margin-top:12px}
+    .st-card{background:#0f1a2d;border:1px solid #203253;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+    .st-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .pill{border:1px solid #223457;background:#0f1a2d;border-radius:999px;padding:4px 8px;font-size:12px}
+    .name{font-weight:700}
+    .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .line{height:1px;background:#1a2945;margin:2px 0}
+    .actions{display:flex;flex-wrap:wrap;gap:6px}
+    .mini{padding:6px 8px;border-radius:10px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);font-size:13px;cursor:pointer}
+    .mini.ok{background:#173a28;border-color:#2b6b49}
+    .mini.ghost{background:#0f1a2d}
+    .note-wrap{display:flex;gap:6px}
+    .total{font-weight:800}
+    .hint{font-size:12px;color:var(--muted)}
+    @media (max-width:900px){
+      .row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
-
-    /* تكيّف الجوال */
-    @media (max-width: 1024px){
-      .row{grid-template-columns:repeat(2, minmax(0,1fr))}
-      .mini{padding:10px 12px}
-      :root{ --namew: 200px; }
-    }
-    @media (max-width: 640px){
-      header h1{font-size:16px}
+    @media (max-width:520px){
       .row{grid-template-columns:1fr}
-      input,button,textarea,select{font-size:15px;padding:12px}
-      :root{ --idw: 120px; --namew: 200px; }
-      table{min-width:1000px}
+      .toolbar{grid-template-columns:1fr}
+      .nums{grid-template-columns:repeat(2,1fr)}
     }
   </style>
 </head>
-
 <body>
-  <header class="no-print">
-    <h1>لوحة تحكم المشرف</h1>
-    <div class="right">
+  <header>
+    <h1>لوحة المشرف — عرض بطاقات</h1>
+    <div>
       <span class="muted">المستخدم: <span id="who">—</span></span>
-      <button class="ghost" id="logoutBtn">تسجيل الخروج</button>
+      <button id="logoutBtn" class="btn ghost">تسجيل الخروج</button>
     </div>
   </header>
 
   <main>
     <!-- تسجيل الدخول -->
     <section id="loginView" class="card">
-      <h2 style="margin-top:0">تسجيل الدخول</h2>
+      <h2 style="margin:0 0 10px">تسجيل الدخول</h2>
       <div class="row">
-        <input id="email" type="email" placeholder="البريد الإلكتروني"/>
-        <input id="password" type="password" placeholder="كلمة المرور"/>
+        <input id="email" type="email" placeholder="البريد الإلكتروني">
+        <input id="password" type="password" placeholder="كلمة المرور">
+        <button id="loginBtn" class="btn primary">دخول</button>
       </div>
-      <div class="row" style="margin-top:8px">
-        <button class="primary" id="loginBtn">دخول</button>
-      </div>
-      <p id="loginMsg" class="muted"></p>
-      <p class="muted">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Authentication → Settings → Authorized domains.</p>
+      <p id="loginMsg" class="muted" style="margin-top:8px"></p>
+      <p class="hint">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Authentication → Settings → Authorized domains.</p>
     </section>
 
-    <!-- اللوحة -->
-    <section id="panelView" class="hide">
-      <!-- إضافة / تحديث طالب -->
-      <div class="card no-print">
-        <h3 style="margin-top:0">إضافة / تحديث طالب</h3>
-        <div class="row">
-          <input id="st_id" placeholder="Document ID (مثلاً رقم الهوية) *" />
-          <input id="st_name" placeholder="الاسم" />
-          <input id="st_nid" placeholder="رقم الهوية (اختياري)" />
-          <input id="st_class" placeholder="الفصل (مثال: 105)" />
-        </div>
-        <div class="row">
-          <input id="st_hw" type="number" placeholder="Hw" />
-          <input id="st_classwork" type="number" placeholder="Classwork" />
-          <input id="st_activity" type="number" placeholder="Activity" />
-          <input id="st_research" type="number" placeholder="Research" />
-        </div>
-        <div class="row">
-          <input id="st_theoretical" type="number" placeholder="Theoretical" />
-          <input id="st_practical" type="number" placeholder="Practical" />
-          <input id="st_absence" type="number" placeholder="Absence (لا يدخل في المجموع)" />
-          <!-- ملاحظات جاهزة -->
-          <select id="st_notes"></select>
-        </div>
-        <div class="row">
-          <button class="ok" id="saveBtn">حفظ / تحديث</button>
-          <button class="ghost" id="clearBtn">تفريغ الحقول</button>
-        </div>
+    <!-- أدوات عامة -->
+    <section id="panelView" class="card" style="display:none">
+      <h2 style="margin:0 0 10px">إدارة الطلاب</h2>
+      <div class="toolbar">
+        <input id="filterClass" placeholder="فلترة بالفصل (مثال: 105)">
+        <input id="searchInput" placeholder="بحث بالاسم أو ID">
+        <button id="refreshBtn" class="btn ghost">تحديث القائمة</button>
+        <a class="btn ghost" href="dashboard.html">لوحة المشرف (الجدول)</a>
+        <button id="printBtn" class="btn">طباعة</button>
+        <a class="btn ghost" href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase ↗</a>
       </div>
 
-      <!-- فلترة / بحث / طباعة -->
-      <div class="card no-print">
-        <div class="row">
-          <input id="filterClass" placeholder="فلترة بالفصل (مثال: 105)" />
-          <input id="searchInput" placeholder="بحث بالاسم أو ID" />
-          <button class="ghost" id="refreshBtn">تحديث القائمة</button>
-          <button class="primary" id="printBtn">طباعة الكشف</button>
-          <a class="link" href="https://console.firebase.google.com/" target="_blank" rel="noopener">فتح Firebase Console ↗</a>
-        </div>
+      <!-- إضافة / تحديث سريع -->
+      <div class="row" style="margin-top:12px">
+        <input id="st_id" placeholder="Document ID *">
+        <input id="st_name" placeholder="الاسم">
+        <input id="st_class" placeholder="الفصل">
+        <select id="st_notes"></select>
+        <input id="st_hw" type="number" placeholder="Hw">
+        <input id="st_classwork" type="number" placeholder="Classwork">
+        <input id="st_activity" type="number" placeholder="Activity">
+        <input id="st_research" type="number" placeholder="Research">
+        <input id="st_theoretical" type="number" placeholder="Theoretical">
+        <input id="st_practical" type="number" placeholder="Practical">
+        <input id="st_absence" type="number" placeholder="Absence">
+        <input id="custom_note" placeholder="ملاحظة خاصة (اختياري)">
       </div>
-
-      <!-- جدول الطلاب (متحرك أفقيًا + أعمدة لاصقة) -->
-      <div class="card table-wrap">
-        <h3 style="margin-top:0">قائمة الطلاب</h3>
-        <table>
-          <thead>
-            <tr>
-              <th class="sticky-id">ID</th>
-              <th class="sticky-name">الاسم</th>
-              <th>الفصل</th>
-              <th class="no-print">نقل للفصل</th>
-              <th class="col-narrow">Hw</th>
-              <th class="col-narrow">Classwork</th>
-              <th class="col-narrow">Activity</th>
-              <th class="col-narrow">Research</th>
-              <th class="col-narrow">Theoretical</th>
-              <th class="col-narrow">Practical</th>
-              <th class="col-narrow">الغياب</th>
-              <th class="col-narrow">المجموع</th>
-              <th class="col-wide">ملاحظات</th>
-              <th class="no-print col-wide">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody id="studentsBody"></tbody>
-        </table>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+        <button id="saveBtn" class="btn ok">حفظ / تحديث</button>
+        <button id="clearBtn" class="btn ghost">تفريغ الحقول</button>
       </div>
     </section>
+
+    <!-- شبكة بطاقات الطلاب -->
+    <section id="cardsWrap" class="grid"></section>
   </main>
 
-  <!-- Firebase + المنطق -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    /* إعدادات مشروعك (نفس مشروع الطلاب) */
+    // إعدادات مشروعك
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -188,12 +124,12 @@
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
 
-    /* Init */
+    // Init
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    /* Helpers */
+    // Helpers
     const $   = (id)=>document.getElementById(id);
     const num = (v)=>Number(v||0);
     const coll= new Intl.Collator('ar');
@@ -212,14 +148,14 @@
     function notesOptionsHTML(selected="لا يوجد"){
       return NOTES.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join("");
     }
-    // تعبئة قائمة نموذج الإضافة
-    (function fillNotesSelect(){ $("st_notes").innerHTML = notesOptionsHTML("لا يوجد"); })();
+    // تعبئة قائمة النموذج
+    (function(){ $("st_notes").innerHTML = notesOptionsHTML("لا يوجد"); })();
 
-    /* Auth */
+    // Auth
     onAuthStateChanged(auth,(user)=>{
-      $("loginView").classList.toggle("hide", !!user);
-      $("panelView").classList.toggle("hide", !user);
-      if(user){ $("who").textContent=user.email||"—"; loadStudents(); }
+      $("loginView").style.display = user ? "none" : "block";
+      $("panelView").style.display = user ? "block" : "none";
+      if(user){ $("who").textContent = user.email || "—"; loadCards(); }
     });
     $("loginBtn").onclick = async()=>{
       $("loginMsg").textContent="";
@@ -228,14 +164,16 @@
     };
     $("logoutBtn").onclick = async()=>{ await signOut(auth); };
 
-    /* === إضافة/تحديث طالب يدوي === */
-    $("saveBtn").onclick = saveStudent;
-    $("clearBtn").onclick = clearForm;
+    // نموذج إضافة/تحديث
+    $("saveBtn").onclick = async ()=>{
+      const id = norm($("st_id").value);
+      if(!id){ alert("أدخل Document ID"); return; }
+      const baseNote = $("st_notes").value || "لا يوجد";
+      const custom = ($("custom_note").value||"").trim();
+      const finalNote = custom ? `${baseNote} — ${custom}` : baseNote;
 
-    function collectStudentForm(){
       const data = {
         Name: $("st_name").value.trim(),
-        Nid_hash: $("st_nid").value.trim(),
         Class: $("st_class").value.trim(),
         Hw: num($("st_hw").value),
         Classwork: num($("st_classwork").value),
@@ -244,84 +182,29 @@
         Theoretical: num($("st_theoretical").value),
         Practical: num($("st_practical").value),
         Absence: num($("st_absence").value),
-        Notes: $("st_notes").value || "لا يوجد"
+        Notes: finalNote
       };
       data.Total = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
-      return data;
-    }
-
-    async function saveStudent(){
-      const id = norm($("st_id").value);
-      if(!id){ alert("أدخل Document ID"); return; }
-      const data = collectStudentForm();
-      await setDoc(doc(db,"students",id), data, {merge:true});
+      await setDoc(doc(db,"students",id), data, { merge:true });
       alert("✅ تم الحفظ");
       clearForm();
-      loadStudents(id);
-    }
+      loadCards(id);
+    };
+    $("clearBtn").onclick = clearForm;
+    $("refreshBtn").onclick = ()=> loadCards();
+    $("printBtn").onclick = ()=> window.print();
+    $("filterClass").addEventListener("input", ()=> loadCards());
+    $("searchInput").addEventListener("input", ()=> loadCards());
 
     function clearForm(){
-      ["st_id","st_name","st_nid","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence"].forEach(id => $(id).value="");
+      ["st_id","st_name","st_class","st_hw","st_classwork","st_activity","st_research","st_theoretical","st_practical","st_absence","custom_note"].forEach(i=>$(i).value="");
       $("st_notes").value = "لا يوجد";
     }
 
-    /* === CRUD من الجدول === */
-    window.deleteStudent = async(id)=>{
-      if(!confirm("حذف الطالب؟")) return;
-      await deleteDoc(doc(db,"students",id));
-      loadStudents();
-    };
-
-    // تعديل مباشر داخل الخلية الرقمية أو الفصل
-    window.edit = async(id, field, td)=>{
-      const ref = doc(db,"students",id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const data = snap.data();
-      data[field] = field==="Class" ? td.textContent.trim() : num(td.textContent);
-      data.Total  = computeTotal(data.Hw,data.Classwork,data.Activity,data.Research,data.Theoretical,data.Practical);
-      await setDoc(ref, data, { merge:true });
-      loadStudents(id);
-    };
-
-    // أسهم زيادة/نقصان
-    window.bump = async(id, field, delta)=>{
-      const ref = doc(db,"students",id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const s = snap.data();
-      const updated = { ...s, [field]: num(s[field])+delta };
-      updated.Total = computeTotal(updated.Hw,updated.Classwork,updated.Activity,updated.Research,updated.Theoretical,updated.Practical);
-      await setDoc(ref, updated);
-      loadStudents(id);
-    };
-
-    // تغيير الملاحظة من الجدول
-    window.setNote = async (id, val) => {
-      await setDoc(doc(db,"students",id), { Notes: val }, { merge:true });
-    };
-
-    // نقل الطالب لفصل آخر (من عمود "نقل للفصل")
-    window.moveClass = async (id) => {
-      const sel = document.getElementById('mv-'+id);
-      const manual = document.getElementById('mvtext-'+id);
-      const newClass = (manual?.value || sel?.value || '').trim();
-      if(!newClass){ alert('اختر فصلًا من القائمة أو اكتب فصلًا جديدًا'); return; }
-      await setDoc(doc(db, 'students', id), { Class: newClass }, { merge: true });
-      if (manual) manual.value = '';
-      loadStudents(id);
-    };
-
-    /* === عرض القائمة (فلترة + بحث + تكيّف) === */
-    $("filterClass").addEventListener("input", ()=> loadStudents());
-    $("searchInput").addEventListener("input", ()=> loadStudents());
-    $("refreshBtn").addEventListener("click", ()=> loadStudents());
-    $("printBtn").addEventListener("click", ()=> window.print());
-
-    async function loadStudents(focusId){
+    // تحميل كرود بطاقات
+    async function loadCards(focusId){
       const klass  = $("filterClass").value.trim();
       const search = norm($("searchInput").value);
-      $("studentsBody").innerHTML = "<tr><td colspan='14'>جاري التحميل…</td></tr>";
 
       const base = collection(db,"students");
       const qy   = klass ? query(base, where("Class","==",klass)) : base;
@@ -329,82 +212,173 @@
 
       let arr = [];
       qs.forEach(d=>{ const s=d.data(); s.id=d.id; arr.push(s); });
-
-      // ترتيب هجائي عربي بالاسم
       arr.sort((a,b)=> coll.compare(a.Name||"", b.Name||""));
 
-      // بحث بالاسم أو الـID
       if(search){
         arr = arr.filter(s => norm(s.Name).includes(search) || norm(s.id).includes(search));
       }
 
-      // قائمة الفصول المتاحة لاختيار "نقل للفصل"
-      const classSet = new Set();
-      arr.forEach(s => { if (s.Class) classSet.add(String(s.Class)); });
-      const classList = Array.from(classSet).sort(coll.compare);
-      const classOptionsHTML = (current) =>
-        ['<option value="">— اختر —</option>']
-          .concat(classList.map(c => `<option value="${c}" ${String(current)===String(c)?'selected':''}>${c}</option>`))
-          .join('');
+      if(!arr.length){
+        $("cardsWrap").innerHTML = `<div class="muted">لا يوجد طلاب</div>`;
+        return;
+      }
 
-      const rows = arr.map(s => `
-        <tr id="row-${s.id}">
-          <td class="sticky-id"><span class="pill">${s.id}</span></td>
-          <td class="sticky-name">${s.Name||""}</td>
-
-          <td contenteditable onblur="edit('${s.id}','Class',this)">${s.Class||""}</td>
-
-          <!-- عمود نقل للفصل -->
-          <td class="no-print" style="min-width:220px">
-            <div style="display:flex;gap:6px;align-items:center;justify-content:center">
-              <select id="mv-${s.id}" style="width:110px">${classOptionsHTML(s.Class||"")}</select>
-              <input id="mvtext-${s.id}" placeholder="اكتب فصل جديد" style="width:120px" />
-              <button class="mini primary" onclick="moveClass('${s.id}')">نقل</button>
-            </div>
-          </td>
-
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Hw',this)">${num(s.Hw)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Classwork',this)">${num(s.Classwork)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Activity',this)">${num(s.Activity)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Research',this)">${num(s.Research)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Theoretical',this)">${num(s.Theoretical)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Practical',this)">${num(s.Practical)}</td>
-          <td class="col-narrow" contenteditable onblur="edit('${s.id}','Absence',this)">${num(s.Absence)}</td>
-          <td class="col-narrow"><strong>${num(s.Total)}</strong></td>
-
-          <!-- ملاحظات: قائمة جاهزة تحفظ عند التغيير -->
-          <td class="col-wide">
-            <select onchange="setNote('${s.id}', this.value)">
-              ${notesOptionsHTML(s.Notes || "لا يوجد")}
-            </select>
-          </td>
-
-          <td class="tools no-print col-wide">
-            <button class="mini ok"    onclick="bump('${s.id}','Hw',1)">+ واجب</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Hw',-1)">- واجب</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Classwork',1)">+ صفي</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Classwork',-1)">- صفي</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Activity',1)">+ نشاط</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Activity',-1)">- نشاط</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Research',1)">+ بحث</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Research',-1)">- بحث</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Theoretical',1)">+ نظري</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Theoretical',-1)">- نظري</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Practical',1)">+ عملي</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Practical',-1)">- عملي</button>
-            <button class="mini ok"    onclick="bump('${s.id}','Absence',1)">+ غياب</button>
-            <button class="mini ghost" onclick="bump('${s.id}','Absence',-1)">- غياب</button>
-            <button class="mini danger" onclick="deleteStudent('${s.id}')">حذف</button>
-          </td>
-        </tr>
-      `);
-
-      $("studentsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="14">لا يوجد نتائج</td></tr>`;
+      $("cardsWrap").innerHTML = arr.map(s => cardHTML(s)).join("");
 
       if(focusId){
-        const row = $("row-"+focusId);
-        if(row) row.scrollIntoView({behavior:"smooth", block:"center"});
+        const el = document.querySelector(`[data-id="${focusId}"]`);
+        if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
       }
+
+      // ربط الأحداث لكل بطاقة
+      bindCardEvents();
+    }
+
+    function cardHTML(s){
+      const note = s.Notes || "لا يوجد";
+      const [baseNote, customPart] = splitNote(note);
+
+      return `
+        <div class="st-card" data-id="${s.id}">
+          <div class="st-head">
+            <div>
+              <div class="name">${s.Name||""}</div>
+              <div class="muted">ID: <span class="pill">${s.id}</span></div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input class="in-class" value="${s.Class||""}" placeholder="الفصل">
+              <button class="mini ghost mv-btn" title="نقل للفصل">نقل</button>
+              <button class="mini danger del-btn">حذف</button>
+            </div>
+          </div>
+
+          <div class="line"></div>
+
+          <div class="nums">
+            ${numBox("Hw","واجب", s.Hw)}
+            ${numBox("Classwork","صفي", s.Classwork)}
+            ${numBox("Activity","نشاط", s.Activity)}
+          </div>
+          <div class="nums">
+            ${numBox("Research","بحث", s.Research)}
+            ${numBox("Theoretical","نظري", s.Theoretical)}
+            ${numBox("Practical","عملي", s.Practical)}
+          </div>
+          <div class="nums">
+            ${numBox("Absence","غياب", s.Absence)}
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="muted">المجموع</div>
+              <div class="total" data-total>${num(s.Total)}</div>
+            </div>
+            <div></div>
+          </div>
+
+          <div class="line"></div>
+
+          <div class="note-wrap">
+            <select class="sel-note">
+              ${notesOptionsHTML(baseNote)}
+            </select>
+            <input class="custom-note" placeholder="ملاحظة خاصة (اختياري)" value="${customPart}">
+          </div>
+
+          <div class="actions">
+            <button class="mini ok save-btn">حفظ</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function numBox(field, label, value){
+      const v = Number(value||0);
+      return `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="muted">${label}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="mini ghost minus" data-field="${field}">−</button>
+            <input type="number" class="in-num" data-field="${field}" value="${v}" style="width:100%">
+            <button class="mini ok plus" data-field="${field}">+</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function splitNote(full){
+      if(!full) return ["لا يوجد",""];
+      const idx = full.indexOf(" — ");
+      if(idx===-1) return [full,""];
+      return [full.slice(0,idx), full.slice(idx+3)];
+    }
+
+    function bindCardEvents(){
+      // أزرار +/- وتحديث التوتال
+      document.querySelectorAll(".st-card").forEach(card=>{
+        const id = card.dataset.id;
+        const numInputs = card.querySelectorAll(".in-num");
+        const totalEl   = card.querySelector("[[data-total]]".replace(/\[|\]/g,"")); // workaround للـ[ ]
+        const totalElem = card.querySelector("[data-total]");
+        const getVals = ()=> {
+          const vals = {};
+          numInputs.forEach(i=> vals[i.dataset.field] = num(i.value));
+          return vals;
+        };
+        const updateTotal = ()=>{
+          const v = getVals();
+          totalElem.textContent = computeTotal(v.Hw,v.Classwork,v.Activity,v.Research,v.Theoretical,v.Practical);
+        };
+
+        card.querySelectorAll(".plus").forEach(btn=>{
+          btn.onclick = ()=> {
+            const field = btn.dataset.field;
+            const input = card.querySelector(`.in-num[data-field="${field}"]`);
+            input.stepUp(); updateTotal();
+          };
+        });
+        card.querySelectorAll(".minus").forEach(btn=>{
+          btn.onclick = ()=> {
+            const field = btn.dataset.field;
+            const input = card.querySelector(`.in-num[data-field="${field}"]`);
+            input.stepDown(); updateTotal();
+          };
+        });
+        numInputs.forEach(inp=> inp.addEventListener("input", updateTotal));
+
+        // حفظ بطاقة
+        card.querySelector(".save-btn").onclick = async ()=>{
+          const v = getVals();
+          const baseNote = card.querySelector(".sel-note").value || "لا يوجد";
+          const custom   = (card.querySelector(".custom-note").value||"").trim();
+          const finalNote = custom ? `${baseNote} — ${custom}` : baseNote;
+
+          const payload = {
+            Class: card.querySelector(".in-class").value.trim(),
+            Hw: v.Hw, Classwork: v.Classwork, Activity: v.Activity,
+            Research: v.Research, Theoretical: v.Theoretical, Practical: v.Practical,
+            Absence: v.Absence || 0,
+            Notes: finalNote,
+            Total: computeTotal(v.Hw,v.Classwork,v.Activity,v.Research,v.Theoretical,v.Practical)
+          };
+          await setDoc(doc(db,"students", id), payload, { merge:true });
+          card.style.outline = "2px solid #2ecc71";
+          setTimeout(()=> card.style.outline="none", 700);
+        };
+
+        // نقل فصل
+        card.querySelector(".mv-btn").onclick = async ()=>{
+          const newClass = card.querySelector(".in-class").value.trim();
+          if(!newClass){ alert("اكتب الفصل أولاً"); return; }
+          await setDoc(doc(db,"students", id), { Class:newClass }, { merge:true });
+          card.style.outline = "2px solid #4f8cff";
+          setTimeout(()=> card.style.outline="none", 700);
+        };
+
+        // حذف
+        card.querySelector(".del-btn").onclick = async ()=>{
+          if(!confirm("حذف هذا الطالب؟")) return;
+          await deleteDoc(doc(db,"students",id));
+          card.remove();
+        };
+      });
     }
   </script>
 </body>
