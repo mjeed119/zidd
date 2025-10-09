@@ -2,27 +2,40 @@
 <html lang="ar" dir="rtl">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>نقل الطلاب لمجلد المعلّم</title>
+<title>نقل الطلاب من /students إلى /teachers/{email}/students</title>
 <style>
-  body{font-family:system-ui;max-width:800px;margin:24px auto;padding:16px}
+  body{font-family:system-ui;max-width:900px;margin:24px auto;padding:16px}
+  h1{font-size:22px;margin:0 0 10px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+  input{padding:10px;border:1px solid #ccd;border-radius:10px}
   button{padding:10px 14px;border-radius:10px;border:1px solid #ccd;background:#eef;cursor:pointer}
-  pre{background:#f7f7f7;border:1px solid #eee;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
+  #log{background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:10px;height:260px;overflow:auto;white-space:pre-wrap}
+  .muted{color:#6b7280}
 </style>
-<h2>نقل الطلاب من /students إلى /teachers/{email}/students</h2>
-<p>هذا سكربت مرّة واحدة. يقسم بحسب فصول المعلم الموجودة في <code>users/{email}.allowedClasses</code>.</p>
 
-<div>
-  <label>إيميل المعلّم:</label>
-  <input id="teacherEmail" placeholder="example@school.com" style="padding:8px;border-radius:8px;border:1px solid #ccd;width:320px">
-  <button id="dry">محاكاة (بدون كتابة)</button>
-  <button id="run">نقل الآن</button>
+<h1>نقل الطلاب من <code>/students</code> إلى <code>teachers/{email}/students</code></h1>
+<p class="muted">السكربت يقسم حسب فصول المعلم الموجودة في <code>users/{email}.allowedClasses</code>. يجب تسجيل الدخول بحساب يملك صلاحية الكتابة.</p>
+
+<div class="row">
+  <input id="authEmail" placeholder="بريد الأدمن" style="min-width:260px">
+  <input id="authPass" type="password" placeholder="كلمة السر">
+  <button id="loginBtn">تسجيل الدخول</button>
+  <span id="authState" class="muted">غير مسجل</span>
 </div>
 
-<pre id="log"></pre>
+<div class="row">
+  <label>إيميل المعلّم:</label>
+  <input id="teacherEmail" placeholder="example@school.com" style="min-width:320px">
+  <button id="dryBtn">محاكاة (بدون كتابة)</button>
+  <button id="runBtn">نقل الآن</button>
+</div>
+
+<div id="log"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
@@ -34,69 +47,86 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-const $ = id => document.getElementById(id);
-const log = (t)=> { $.log.textContent += t + "\n"; };
+const el = id => document.getElementById(id);
+const out = el("log");
+const log = (t)=>{ out.textContent += t + "\n"; out.scrollTop = out.scrollHeight; };
 
-async function getAllowedClasses(email){
-  // users/{email}.allowedClasses  (لو ما كانت موجودة، يرجّع null)
-  const usersSnap = await getDocs(query(collection(db, "users")));
-  let found = null;
+onAuthStateChanged(auth, (u)=>{
+  el("authState").textContent = u ? ("مسجل: " + (u.email||"")) : "غير مسجل";
+});
+
+el("loginBtn").onclick = async ()=>{
+  try{
+    await signInWithEmailAndPassword(auth, el("authEmail").value.trim(), el("authPass").value);
+    log("✔️ تم تسجيل الدخول.");
+  }catch(e){
+    console.error(e); log("❌ فشل تسجيل الدخول: " + (e.code||e.message));
+  }
+};
+
+async function getAllowedClasses(emailLower){
+  // نقرأ users/{email} (الـ ID يجب أن يكون نفس البريد lowercase)
+  const usersSnap = await getDocs(collection(db,"users"));
+  let allowed = null;
   usersSnap.forEach(d=>{
-    if (d.id.toLowerCase() === email.toLowerCase()) {
+    if (d.id.toLowerCase() === emailLower) {
       const a = d.data().allowedClasses;
-      if (Array.isArray(a) && a.length) found = a.map(String);
+      if (Array.isArray(a) && a.length) allowed = a.map(v=>String(v));
     }
   });
-  return found;
+  return allowed;
 }
 
-async function gatherStudentsByClasses(classes){
-  // نقرأ كل الطلاب من /students ونفلتر حسب الكلاسات المطلوبة
-  const allSnap = await getDocs(collection(db, "students"));
+async function gatherLegacyStudents(classes){
+  const all = await getDocs(query(collection(db,"students"), orderBy("Name")));
   const list = [];
-  allSnap.forEach(s=>{
+  all.forEach(s=>{
     const d = s.data();
-    const cls = String(d.Class || "");
-    if (!classes || classes.includes(cls)) list.push({ id: s.id, ...d });
+    const cls = String(d.Class||"");
+    if (!classes || classes.includes(cls)) list.push({ id:s.id, ...d });
   });
   return list;
 }
 
 async function migrate(email, dryRun=false){
-  $.log.textContent = "";
-  email = email.trim().toLowerCase();
-  if(!email){ log("❌ أدخل إيميل المعلم أولاً"); return; }
+  out.textContent = "";
+  const emailLower = (email||"").trim().toLowerCase();
+  if(!emailLower){ log("❌ أدخل إيميل المعلّم."); return; }
 
-  const allowed = await getAllowedClasses(email);
-  log(`المعلم: ${email}`);
-  log(`الفصول المعتمدة: ${allowed ? allowed.join(", ") : "(غير محددة - سيتم نقل الكل)"}`);
+  const user = auth.currentUser;
+  if(!user){ log("❌ يجب تسجيل الدخول أولاً."); return; }
 
-  const students = await gatherStudentsByClasses(allowed);
-  log(`عدد الطلاب المراد نقلهم: ${students.length}`);
+  log("المعلم: " + emailLower);
 
-  if (dryRun){ log("✅ محاكاة فقط. لا يوجد كتابة."); return; }
+  const allowed = await getAllowedClasses(emailLower);
+  log("الفصول المعتمدة: " + (allowed ? allowed.join(", ") : "(غير محددة — سيتم نقل الكل)"));
 
-  // نكتب على دفعات (حد فايرستور 500 لكل batch)
+  const students = await gatherLegacyStudents(allowed);
+  log("عدد السجلات المراد نقلها: " + students.length);
+
+  if (dryRun){ log("✅ محاكاة فقط — لا يوجد كتابة."); return; }
+
+  // كتابة على دفعات (أمان تحت حد 500)
   let batch = writeBatch(db);
   let count = 0, batches = 1;
-
   for (const s of students){
-    const ref = doc(db, "teachers", email, "students", s.id);
-    batch.set(ref, s, { merge: true });
+    const ref = doc(db, "teachers", emailLower, "students", s.id);
+    batch.set(ref, s, { merge:true });
     count++;
-    if (count % 450 === 0) { // مسافة أمان تحت 500
+    if (count % 450 === 0){
       await batch.commit();
-      log(`✔️ تم تنفيذ الدفعة #${batches} (${count} سجل)`);
+      log(`✔️ تم تنفيذ الدفعة #${batches} (إجمالي ${count})`);
       batch = writeBatch(db);
       batches++;
     }
   }
   await batch.commit();
-  log(`🎉 اكتمل النقل. إجمالي: ${count} طالب/سجل في ${batches} دفعات.`);
+  log(`🎉 اكتمل النقل. الإجمالي: ${count} سجل — عدد الدُفعات: ${batches}.`);
 }
 
-$.dry.onclick = ()=> migrate($.teacherEmail.value, true);
-$.run.onclick = ()=> migrate($.teacherEmail.value, false);
+el("dryBtn").onclick = ()=> migrate(el("teacherEmail").value, true);
+el("runBtn").onclick = ()=> migrate(el("teacherEmail").value, false);
 </script>
