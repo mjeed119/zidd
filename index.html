@@ -40,13 +40,6 @@
 
     <section class="card">
       <div class="row">
-        <label>اختر المعلّم:</label>
-        <select id="teacherSelect"><option value="">— اختر —</option></select>
-      </div>
-    </section>
-
-    <section class="card" id="classCard" style="display:none;">
-      <div class="row">
         <label>اختر الفصل:</label>
         <select id="classSelect"><option value="">— اختر —</option></select>
       </div>
@@ -67,16 +60,15 @@
       <p>النسبة: <span id="percentScore">—</span>%</p>
     </section>
 
-    <footer><small>© <span id="year"></span> بوابة الدرجات</small></footer>
+    <footer><small>© <span id="year"></span> معلم التقنية الرقمية: عبدالمجيد الغامدي</small></footer>
   </main>
 
-  <<script type="module">
+  <!-- Firebase -->
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import {
-      getFirestore, collection, doc, getDocs, getDoc, query, orderBy
-    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-  
-    // Firebase config
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    // إعدادات Firebase (نفس مشروعك)
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -85,15 +77,13 @@
       messagingSenderId: "279588301357",
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
-  
+
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
-  
-    // عناصر
-    const teacherSelect  = document.getElementById("teacherSelect");
+
+    // عناصر DOM
     const classSelect    = document.getElementById("classSelect");
     const studentSelect  = document.getElementById("studentSelect");
-    const classCard      = document.getElementById("classCard");
     const studentCard    = document.getElementById("studentCard");
     const gradesSection  = document.getElementById("gradesSection");
     const studentHeader  = document.getElementById("studentHeader");
@@ -101,165 +91,118 @@
     const gradesTableWrapper = document.getElementById("gradesTableWrapper");
     const totalScoreEl   = document.getElementById("totalScore");
     const percentScoreEl = document.getElementById("percentScore");
-  
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // ذاكرة
     const collator = new Intl.Collator('ar');
-    let STATE = { teacherId:null, categories:[], students:[] };
-  
-    // تحميل المعلّمين
-    async function loadTeachers(){
-      teacherSelect.innerHTML = '<option value="">— اختر —</option>';
-      try{
-        const tSnap = await getDocs(collection(db,"teachers"));
-        const ids = [];
-        tSnap.forEach(d => ids.push(d.id));
-        ids.sort(collator.compare);
-  
-        for(const email of ids){
-          let label = email;
-          try{
-            const m = await getDoc(doc(db,"teachers",email,"meta","default"));
-            const dn = m.exists() && m.data().displayName;
-            if(dn && String(dn).trim()) label = String(dn).trim();
-          }catch{}
-          const opt = document.createElement("option");
-          opt.value = email; opt.textContent = label;
-          teacherSelect.appendChild(opt);
-        }
-      }catch(e){
-        console.error("loadTeachers error:", e);
-        alert("تعذّر تحميل قائمة المعلّمين. تأكد من القواعد والمسار teachers/");
-      }
-    }
-  
-    // عند اختيار معلّم
-    teacherSelect.addEventListener("change", async ()=>{
-      resetBelow("teacher");
-      const teacherEmail = teacherSelect.value;
-      if(!teacherEmail) return;
-  
-      STATE.teacherId = teacherEmail;
-  
-      // categories
-      STATE.categories = [];
-      try{
-        const meta = await getDoc(doc(db,"teachers",teacherEmail,"meta","default"));
-        const arr = meta.exists() ? meta.data().categories : null;
-        if(Array.isArray(arr)) STATE.categories = arr;
-      }catch{}
-  
-      // students
-      STATE.students = [];
-      try{
-        const qs = await getDocs(query(collection(db,"teachers",teacherEmail,"students"), orderBy("Name")));
-        qs.forEach(s=> STATE.students.push({ id:s.id, ...s.data() }));
-      }catch(e){
-        console.error("load students error:", e);
-        alert("تعذّر تحميل طلاب المعلّم. تأكد من القواعد ومسار students/");
-        return;
-      }
-  
-      const classes = [...new Set(STATE.students.map(s=> String(s.Class||"غير محدد")))];
-      classes.sort(collator.compare);
+    let DATA = { classes: {} }, currentClass = null;
+
+    // 1) تحميل الطلاب من مجموعة students وتجميعهم حسب Class
+    async function loadStudents() {
+      const qs = await getDocs(query(collection(db, "students"), orderBy("Name")));
+      const classes = {};
+      qs.forEach(docSnap => {
+        const d = docSnap.data();
+        const c = (d.Class || "غير محدد") + "";
+        if (!classes[c]) classes[c] = [];
+        classes[c].push({ id: docSnap.id, ...d });
+      });
+      DATA.classes = classes;
+
+      // تعبئة قائمة الفصول (فصولك أنت ستكون موجودة هناك)
       classSelect.innerHTML = '<option value="">— اختر —</option>';
-      classes.forEach(c=>{
-        const opt=document.createElement("option");
-        opt.value=c; opt.textContent=c;
+      Object.keys(classes).sort(collator.compare).forEach(cls=>{
+        const opt = document.createElement("option");
+        opt.value = cls; opt.textContent = cls;
         classSelect.appendChild(opt);
       });
-      classCard.style.display="block";
-    });
-  
-    // عند اختيار فصل
+    }
+
+    // 2) عند اختيار فصل: عرض أسماء الطلاب
     classSelect.addEventListener("change", ()=>{
-      resetBelow("class");
-      const cls = classSelect.value;
-      if(!cls) return;
-      const list = STATE.students
-        .filter(s => String(s.Class||"غير محدد")===cls)
+      currentClass = classSelect.value;
+      gradesSection.style.display = "none";
+      if(!currentClass){ studentCard.style.display = "none"; return; }
+
+      const list = (DATA.classes[currentClass] || [])
         .sort((a,b)=> collator.compare(a.Name||"", b.Name||""));
+
       studentSelect.innerHTML = '<option value="">— اختر —</option>';
       list.forEach(s=>{
-        const opt=document.createElement("option");
-        opt.value=s.id; opt.textContent=s.Name||s.id;
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.Name || s.id;
         studentSelect.appendChild(opt);
       });
-      studentCard.style.display="block";
+      studentCard.style.display = "block";
     });
-  
-    // عند اختيار طالب
+
+    // 3) عرض درجات الطالب
     studentSelect.addEventListener("change", ()=>{
       const id = studentSelect.value;
-      if(!id){ gradesSection.style.display="none"; return; }
-      const s = STATE.students.find(x=>x.id===id);
+      gradesSection.style.display = "none";
+      if(!id) return;
+      const s = (DATA.classes[currentClass]||[]).find(x=>x.id===id);
       if(s) renderGrades(s);
     });
-  
+
     function renderGrades(s){
-      studentHeader.textContent = `${s.Name||s.id} — ${s.Class||"غير محدد"}`;
-      const note = s.Notes ? String(s.Notes) : "لا يوجد";
-      studentNoteWrap.innerHTML = `<span class="badge">الملاحظة: ${note}</span>`;
-  
-      // الأعمدة: categories من meta، مع إضافة Hw تلقائياً إن وُجد ولم يكن ضمن القائمة
-      const cols = Array.isArray(STATE.categories) ? [...STATE.categories] : [];
-      if (s.Hw !== undefined && !cols.includes("Hw")) cols.push("Hw");
-  
+      studentHeader.textContent = `${s.Name||s.id} — ${s.Class || 'غير محدد'}`;
+      const noteText = s.Notes ? String(s.Notes) : "لا يوجد";
+      studentNoteWrap.innerHTML = `<span class="badge">الملاحظة: ${noteText}</span>`;
+
+      const cols = [
+        ["Hw","الواجبات"],
+        ["Classwork","أعمال صفية"],
+        ["Activity","نشاط"],
+        ["Research","بحث"],
+        ["Theoretical","نظري"],
+        ["Practical","عملي"],
+        ["Absence","غياب"]
+      ];
+
       const table = document.createElement("table");
-      table.innerHTML = "<thead><tr><th>البند</th><th>الدرجة</th></tr></thead>";
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th>البند</th><th>الدرجة</th></tr>";
+      table.appendChild(thead);
+
       const tbody = document.createElement("tbody");
-  
       let total = 0;
-      for(const key of cols){
+
+      for(const [key,label] of cols){
         const val = Number(s[key] ?? 0);
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${key}</td><td>${val}</td>`;
+        tr.innerHTML = `<td>${label}</td><td>${val}</td>`;
         tbody.appendChild(tr);
-        if(String(key).trim()!=="غياب") total += val; // غياب لا يدخل المجموع
+        if(key !== "Absence") total += val; // الغياب لا يدخل في المجموع
       }
+
       // صف الملاحظات
-      const trN = document.createElement("tr");
-      trN.innerHTML = `<td>الملاحظات</td><td>${note}</td>`;
-      tbody.appendChild(trN);
-  
+      const trNote = document.createElement("tr");
+      trNote.innerHTML = `<td>الملاحظات</td><td>${noteText}</td>`;
+      tbody.appendChild(trNote);
+
       table.appendChild(tbody);
       gradesTableWrapper.innerHTML = "";
       gradesTableWrapper.appendChild(table);
-  
+
       totalScoreEl.textContent = total;
       percentScoreEl.textContent = total.toFixed(2);
-      gradesSection.style.display="block";
+      gradesSection.style.display = "block";
     }
-  
-    function resetBelow(level){
-      if(level==="teacher"){
-        classSelect.innerHTML = '<option value="">— اختر —</option>';
-        studentSelect.innerHTML = '<option value="">— اختر —</option>';
-        classCard.style.display = "none";
-        studentCard.style.display = "none";
-        gradesSection.style.display = "none";
-      }else if(level==="class"){
-        studentSelect.innerHTML = '<option value="">— اختر —</option>';
-        studentCard.style.display = "none";
-        gradesSection.style.display = "none";
-      }
-    }
-  
-    // تهيئة
-    document.getElementById("year").textContent = new Date().getFullYear();
-    (async function init(){
-      await loadTeachers();
-    })();
-  
-    // زر الوضع الداكن (اختياري لديك)
+
+    // تمهيد
+    loadStudents();
+
+    // تبديل الوضع الداكن/الفاتح
     const toggle=document.getElementById("toggleTheme");
     function applyTheme(t){
       document.documentElement.dataset.theme=t;
       localStorage.setItem("theme",t);
       toggle.textContent=t==="dark"?"الوضع الفاتح":"الوضع الداكن";
     }
-    if (toggle){
-      applyTheme(localStorage.getItem("theme")||"light");
-      toggle.onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
-    }
+    applyTheme(localStorage.getItem("theme")||"light");
+    toggle.onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
   </script>
 </body>
 </html>
