@@ -15,11 +15,12 @@
       --primary:#7b90ff; --primary-weak:#1e2450; --text:#e8ecff;
       --badge:#3b2f16; --badge-text:#ffe9b3;
     }
+    *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial;margin:0}
     .container{max-width:900px;margin:24px auto;padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 6px 18px rgba(0,0,0,.06)}
     .btn{padding:10px 14px;border-radius:10px;background:var(--primary-weak);cursor:pointer;font-weight:600;color:var(--text);border:none}
-    select{padding:10px;border-radius:10px;border:1px solid var(--border);min-width:240px}
+    select{padding:10px;border-radius:10px;border:1px solid var(--border);min-width:260px;background:var(--card);color:var(--text)}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:10px;text-align:center}
     th{background:#f3f5fb}
@@ -33,9 +34,7 @@
   <main class="container">
     <div class="row" style="justify-content:space-between;">
       <h1>بوابة الدرجات</h1>
-      <div class="row">
-        <button class="btn" id="toggleTheme">الوضع الداكن</button>
-      </div>
+      <button class="btn" id="toggleTheme">الوضع الداكن</button>
     </div>
 
     <section class="card">
@@ -76,7 +75,7 @@
     import {
       getFirestore, collection, doc, getDocs, getDoc, query, orderBy
     } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-  
+
     // إعدادات مشروعك
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
@@ -86,11 +85,11 @@
       messagingSenderId: "279588301357",
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
-  
+
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
-  
-    // عناصر الصفحة
+
+    // عناصر DOM
     const teacherSelect  = document.getElementById("teacherSelect");
     const classSelect    = document.getElementById("classSelect");
     const studentSelect  = document.getElementById("studentSelect");
@@ -102,88 +101,101 @@
     const gradesTableWrapper = document.getElementById("gradesTableWrapper");
     const totalScoreEl   = document.getElementById("totalScore");
     const percentScoreEl = document.getElementById("percentScore");
-  
+
     document.getElementById("year").textContent = new Date().getFullYear();
     const collator = new Intl.Collator('ar');
-  
+
     // ذاكرة
-    const STATE = {
-      teachers: {},          // email -> {displayName, allowedClasses}
-      studentsByClass: {},   // class -> [students...]
-      currentTeacher: null,  // email
-      currentCategories: []  // إن كنت تستخدمها لاحقاً
+    let CURRENT = {
+      teacherId: null,     // email (document id)
+      categories: [],      // from meta/default
+      students: [],        // from teachers/{email}/students
     };
-  
-    // 1) حمّل الطلاب مرّة واحدة من /students
-    async function loadAllStudents(){
-      const qStu = query(collection(db, "students"), orderBy("Name"));
-      const snap = await getDocs(qStu);
-      STATE.studentsByClass = {};
-      snap.forEach(d=>{
-        const s = { id:d.id, ...d.data() };
-        const cls = String(s.Class || "غير محدد");
-        (STATE.studentsByClass[cls] ||= []).push(s);
-      });
-      // رتّب الأسماء داخل كل فصل
-      Object.values(STATE.studentsByClass)
-        .forEach(list=> list.sort((a,b)=>collator.compare(a.Name||"", b.Name||"")));
-    }
-  
-    // 2) حمّل قائمة المعلّمين من /users (role = teacher/admin)
+
+    // 1) تحميل قائمة المعلّمين (تُعرض displayName من meta/default)
     async function loadTeachers(){
-      const qs = await getDocs(collection(db, "users"));
+      const seen = new Set();
       const items = [];
-      qs.forEach(d=>{
-        const data = d.data() || {};
-        const role = (data.role || "").toLowerCase();
-        if(role === "teacher" || role === "admin"){
-          const email = d.id.toLowerCase();
-          STATE.teachers[email] = {
-            displayName: data.displayName || email,
-            allowedClasses: Array.isArray(data.allowedClasses) ? data.allowedClasses.map(String) :
-                             Array.isArray(data.classes) ? data.classes.map(String) : [] // دعم الاسم القديم
-          };
-          items.push(email);
-        }
-      });
-      // املأ السلكت
+
+      const qs = await getDocs(collection(db, "teachers"));
+      for (const d of qs.docs){
+        const email = (d.id || "").toLowerCase();
+        if (seen.has(email)) continue;
+        seen.add(email);
+
+        // حاول جلب اسم العرض:
+        let label = email;
+        try {
+          const metaRef  = doc(db, "teachers", email, "meta", "default");
+          const metaSnap = await getDoc(metaRef);
+          if (metaSnap.exists() && metaSnap.data().displayName){
+            label = String(metaSnap.data().displayName);
+          }
+        } catch {}
+
+        items.push({ value: email, label });
+      }
+
+      // ترتيب عربي
+      items.sort((a,b)=> collator.compare(a.label, b.label));
+
+      // تعبئة القائمة
       teacherSelect.innerHTML = '<option value="">— اختر —</option>';
-      items.sort(collator.compare).forEach(email=>{
+      for (const it of items){
         const opt = document.createElement("option");
-        opt.value = email;
-        opt.textContent = STATE.teachers[email].displayName;
+        opt.value = it.value;
+        opt.textContent = it.label;
         teacherSelect.appendChild(opt);
-      });
+      }
     }
-  
-    // 3) عند اختيار معلّم -> احضر الفصول المسموح بها والتي لها طلاب فعلاً
-    teacherSelect.addEventListener("change", ()=>{
+
+    // 2) عند اختيار معلّم: حمّل meta + الطلاب ثم جهّز الفصول
+    teacherSelect.addEventListener("change", async ()=>{
       resetBelow("teacher");
-      const email = teacherSelect.value;
-      if(!email) return;
-      STATE.currentTeacher = email;
-  
-      const allowed = (STATE.teachers[email]?.allowedClasses || []).map(String);
-      // إن ما فيه allowedClasses، نعرض كل الفصول الموجودة
-      const allClasses = Object.keys(STATE.studentsByClass);
-      const classesToShow = (allowed.length ? allowed.filter(c => STATE.studentsByClass[c]?.length) : allClasses)
-                            .sort(collator.compare);
-  
+      const teacherEmail = teacherSelect.value;
+      if(!teacherEmail) return;
+
+      CURRENT.teacherId = teacherEmail;
+
+      // meta/default --> categories
+      try {
+        const metaRef  = doc(db, "teachers", teacherEmail, "meta", "default");
+        const metaSnap = await getDoc(metaRef);
+        CURRENT.categories = (metaSnap.exists() && Array.isArray(metaSnap.data().categories))
+          ? metaSnap.data().categories
+          : [];
+      } catch {
+        CURRENT.categories = [];
+      }
+
+      // students
+      const qStu = query(collection(db, "teachers", teacherEmail, "students"), orderBy("Name"));
+      const stuSnap = await getDocs(qStu);
+      CURRENT.students = stuSnap.docs.map(s => ({ id: s.id, ...s.data() }));
+
+      // استخرج الفصول المميّزة
+      const classes = [...new Set(CURRENT.students.map(s => String(s.Class || "غير محدد")))];
+      classes.sort(collator.compare);
+
       classSelect.innerHTML = '<option value="">— اختر —</option>';
-      classesToShow.forEach(cls=>{
+      classes.forEach(cls=>{
         const opt = document.createElement("option");
         opt.value = cls; opt.textContent = cls;
         classSelect.appendChild(opt);
       });
       classCard.style.display = "block";
     });
-  
-    // 4) عند اختيار فصل -> املأ أسماء الطلاب من /students حسب الفصل
+
+    // 3) عند اختيار فصل: أعرض أسماء الطلاب
     classSelect.addEventListener("change", ()=>{
       resetBelow("class");
       const cls = classSelect.value;
       if(!cls) return;
-      const list = STATE.studentsByClass[cls] || [];
+
+      const list = CURRENT.students
+        .filter(s => String(s.Class || "غير محدد") === cls)
+        .sort((a,b)=> collator.compare(String(a.Name||""), String(b.Name||"")));
+
       studentSelect.innerHTML = '<option value="">— اختر —</option>';
       list.forEach(s=>{
         const opt = document.createElement("option");
@@ -193,62 +205,62 @@
       });
       studentCard.style.display = "block";
     });
-  
-    // 5) عرض درجات الطالب
+
+    // 4) عند اختيار الطالب: اعرض درجاته
     studentSelect.addEventListener("change", ()=>{
       gradesSection.style.display = "none";
       const id = studentSelect.value;
       if(!id) return;
-      const cls = classSelect.value;
-      const s = (STATE.studentsByClass[cls] || []).find(x=>x.id===id);
-      if(s) renderGrades(s);
+      const s = CURRENT.students.find(x=>x.id===id);
+      if(!s) return;
+      renderGrades(s);
     });
-  
+
     function renderGrades(s){
-      studentHeader.textContent = `${s.Name||s.id} — ${s.Class || 'غير محدد'}`;
+      studentHeader.textContent = `${s.Name || s.id} — ${s.Class || 'غير محدد'}`;
       const noteText = s.Notes ? String(s.Notes) : "لا يوجد";
       studentNoteWrap.innerHTML = `<span class="badge">الملاحظة: ${noteText}</span>`;
-  
-      // الأعمدة الثابتة (نفس القديمة)
-      const cols = [
-        ["Hw","الواجبات"],
-        ["Research","البحث"],
-        ["Activity","النشاط الصفي"],
-        ["Theoretical","الاختبار النظري"],
-        ["Practical","الاختبار العملي"],
-        ["Absence","الغياب"]
-      ];
-  
-      const table=document.createElement("table");
-      table.innerHTML = "<thead><tr><th>البند</th><th>الدرجة</th></tr></thead>";
-      const tbody=document.createElement("tbody");
-      let total=0;
-  
-      for(const [key,label] of cols){
-        const val = Number(s[key] || 0);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${label}</td><td>${val}</td>`;
+
+      // الأعمدة: من meta.categories + (Hw إن وُجد ولم يكن ضمنها)
+      const cols = Array.isArray(CURRENT.categories) ? [...CURRENT.categories] : [];
+      if (s.Hw !== undefined && !cols.includes("Hw")) cols.push("Hw");
+
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th>البند</th><th>الدرجة</th></tr>";
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      let total = 0;
+
+      for(const key of cols){
+        const val = Number(s[key] ?? 0);
+        const tr  = document.createElement("tr");
+        tr.innerHTML = `<td>${key}</td><td>${val}</td>`;
         tbody.appendChild(tr);
-        if(key !== "Absence") total += val;
+
+        if(String(key).trim() !== "غياب") total += val; // الغياب لا يدخل
       }
+
+      // صف الملاحظات
       const trNote = document.createElement("tr");
       trNote.innerHTML = `<td>الملاحظات</td><td>${noteText}</td>`;
       tbody.appendChild(trNote);
-  
+
       table.appendChild(tbody);
       gradesTableWrapper.innerHTML = "";
       gradesTableWrapper.appendChild(table);
-  
+
       totalScoreEl.textContent = total;
       percentScoreEl.textContent = total.toFixed(2);
       gradesSection.style.display = "block";
     }
-  
+
     function resetBelow(level){
       if(level==="teacher"){
-        classSelect.innerHTML = '<option value="">— اختر —</option>';
+        classSelect.innerHTML   = '<option value="">— اختر —</option>';
         studentSelect.innerHTML = '<option value="">— اختر —</option>';
-        classCard.style.display = "none";
+        classCard.style.display   = "none";
         studentCard.style.display = "none";
         gradesSection.style.display = "none";
       }else if(level==="class"){
@@ -257,12 +269,11 @@
         gradesSection.style.display = "none";
       }
     }
-  
+
     // تشغيل
-    await loadAllStudents();
     await loadTeachers();
-  
-    // الوضع الداكن
+
+    // تبديل الوضع الداكن
     const toggle=document.getElementById("toggleTheme");
     function applyTheme(t){
       document.documentElement.dataset.theme=t;
