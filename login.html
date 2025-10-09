@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>تسجيل الدخول</title>
   <style>
     :root{--bg:#0b1220;--card:#101a2b;--ink:#e8f0ff;--muted:#9fb3d1;--accent:#4f8cff;--line:#1a2945}
@@ -10,54 +10,90 @@
     body{margin:0;background:var(--bg);color:var(--ink);min-height:100dvh;display:grid;place-items:center;padding:16px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%}
     h1{margin:0 0 12px;font-size:20px}
-    .muted{color:var(--muted);font-size:13px}
+    .muted{color:var(--muted);font-size:12px}
     .row{display:grid;gap:10px}
     input,button{width:100%;padding:12px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
     .btn{cursor:pointer;font-weight:700}
     .btn.primary{background:var(--accent);border-color:#3f70cc}
-    .err{color:#ffb3b3;margin-top:8px;min-height:20px}
+    .err{color:#ffb3b3;margin-top:8px;min-height:20px;white-space:pre-wrap}
   </style>
 </head>
 <body>
   <main class="card">
     <h1>تسجيل الدخول</h1>
     <div class="row">
-      <input id="email" type="email" placeholder="البريد الإلكتروني">
-      <input id="password" type="password" placeholder="كلمة المرور">
+      <input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
+      <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
       <button id="loginBtn" class="btn primary">دخول</button>
       <div id="loginMsg" class="err"></div>
-      <p class="muted">تأكد إضافة نطاق <code>mjeed119.github.io</code> داخل Firebase Authentication → Settings → Authorized domains.</p>
+      <p class="muted">تأكد إضافة نطاق <code>mjeed119.github.io</code> في Firebase → Authentication → Settings → Authorized domains.</p>
     </div>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  
-    const firebaseConfig = { /* نفس إعداداتك */ };
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    // إعدادات مشروعك (نفسها اللي عندك)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
+      authDomain: "students-portal-9eda8.firebaseapp.com",
+      projectId: "students-portal-9eda8",
+      storageBucket: "students-portal-9eda8.firebasestorage.app",
+      messagingSenderId: "279588301357",
+      appId: "1:279588301357:web:37f0ad440810aed4a166a4"
+    };
+
+    // تشغيل Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-  
-    const email = document.getElementById("email");
-    const pass  = document.getElementById("password");
-    const btn   = document.getElementById("loginBtn");
-    const msg   = document.getElementById("loginMsg");
-  
-    btn.onclick = async () => {
+    const db   = getFirestore(app);
+
+    const $  = (id)=>document.getElementById(id);
+    const msg= $("loginMsg");
+
+    $("loginBtn").onclick = async () => {
       msg.textContent = "";
+      const email = ($("email").value || "").trim().toLowerCase();
+      const pass  = $("password").value || "";
+
+      if(!email || !pass){
+        msg.textContent = "يرجى إدخال البريد وكلمة المرور.";
+        return;
+      }
+
       try {
-        await signInWithEmailAndPassword(auth, email.value.trim(), pass.value);
-        // النجاح → راح تكمّل توجيهك حسب الدور…
-        window.location.href = "admin.html"; // أو teacher.html حسب سكربتك
+        // 1) تسجيل الدخول
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+
+        // 2) قراءة الدور من users/{email} (اسم الوثيقة = الإيميل بحروف صغيرة)
+        const ref  = doc(db, "users", email);
+        const snap = await getDoc(ref);
+
+        if (!snap.exists()) {
+          msg.textContent = "❌ حسابك غير مضاف في users. تواصل مع المشرف.";
+          return;
+        }
+
+        const data = snap.data() || {};
+        const role = (data.role || "teacher").toLowerCase();
+
+        // 3) توجيه حسب الدور
+        if (role === "admin") {
+          window.location.href = "admin.html";       // لوحتك
+        } else if (role === "teacher") {
+          window.location.href = "teacher.html";     // صفحة المعلّم
+        } else {
+          msg.textContent = "⚠️ نوع الحساب غير معروف، راجع المشرف.";
+        }
+
       } catch (err) {
-        console.error("LOGIN ERROR:", err.code, err.message);
-        // اعرض الرمز للمساعدة
-        msg.textContent = `❌ ${err.code}`;
+        console.error("LOGIN ERROR:", err);
+        // أعرض رمز الخطأ ليسهل إصلاحه
+        msg.textContent = `❌ ${err.code || "auth/error"} — ${err.message || ""}`;
       }
     };
   </script>
-  
-  
-  
 </body>
 </html>
