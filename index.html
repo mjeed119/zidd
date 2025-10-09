@@ -15,12 +15,11 @@
       --primary:#7b90ff; --primary-weak:#1e2450; --text:#e8ecff;
       --badge:#3b2f16; --badge-text:#ffe9b3;
     }
-    *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial;margin:0}
     .container{max-width:900px;margin:24px auto;padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 6px 18px rgba(0,0,0,.06)}
     .btn{padding:10px 14px;border-radius:10px;background:var(--primary-weak);cursor:pointer;font-weight:600;color:var(--text);border:none}
-    select{padding:10px;border-radius:10px;border:1px solid var(--border);min-width:260px;background:var(--card);color:var(--text)}
+    select{padding:10px;border-radius:10px;border:1px solid var(--border);min-width:240px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:10px;text-align:center}
     th{background:#f3f5fb}
@@ -34,7 +33,9 @@
   <main class="container">
     <div class="row" style="justify-content:space-between;">
       <h1>بوابة الدرجات</h1>
-      <button class="btn" id="toggleTheme">الوضع الداكن</button>
+      <div class="row">
+        <button class="btn" id="toggleTheme">الوضع الداكن</button>
+      </div>
     </div>
 
     <section class="card">
@@ -69,14 +70,13 @@
     <footer><small>© <span id="year"></span> بوابة الدرجات</small></footer>
   </main>
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import {
       getFirestore, collection, doc, getDocs, getDoc, query, orderBy
     } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    // إعدادات مشروعك
+    // إعدادات Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -89,7 +89,7 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // عناصر DOM
+    // DOM
     const teacherSelect  = document.getElementById("teacherSelect");
     const classSelect    = document.getElementById("classSelect");
     const studentSelect  = document.getElementById("studentSelect");
@@ -101,130 +101,103 @@
     const gradesTableWrapper = document.getElementById("gradesTableWrapper");
     const totalScoreEl   = document.getElementById("totalScore");
     const percentScoreEl = document.getElementById("percentScore");
-
     document.getElementById("year").textContent = new Date().getFullYear();
-    const collator = new Intl.Collator('ar');
 
-    // ذاكرة
-    let CURRENT = {
-      teacherId: null,     // email (document id)
-      categories: [],      // from meta/default
-      students: [],        // from teachers/{email}/students
+    const collator = new Intl.Collator('ar');
+    const YOU   = "abdulmajeedalghahmdi1@gmail.com";
+    const BANDAR= "bandarmubaraki@gmail.com";
+
+    const CURRENT = {
+      teacherId: null,
+      categories: [],
+      students: [],
     };
 
-    // 1) تحميل قائمة المعلّمين (تُعرض displayName من meta/default)
+    // تحميل المعلّمين (teachers) + دعم المسار القديم لطلابك
     async function loadTeachers(){
-      const seen = new Set();
-      const items = [];
+      const items = new Set();
 
-      const qs = await getDocs(collection(db, "teachers"));
-      for (const d of qs.docs){
-        const email = (d.id || "").toLowerCase();
-        if (seen.has(email)) continue;
-        seen.add(email);
+      // من مسار teachers
+      const tSnap = await getDocs(collection(db, "teachers"));
+      tSnap.forEach(d => items.add(d.id));
 
-        // حاول جلب اسم العرض:
+      // تأكّد وجودك أنت وبندر حتى لو ما فيهما meta كامل
+      items.add(YOU);
+      items.add(BANDAR);
+
+      // إبني القائمة مع الأسماء من meta/default إن وُجدت
+      teacherSelect.innerHTML = '<option value="">— اختر —</option>';
+      const all = Array.from(items).sort(collator.compare);
+
+      for (const email of all){
         let label = email;
-        try {
-          const metaRef  = doc(db, "teachers", email, "meta", "default");
+        try{
+          const metaRef = doc(db, "teachers", email, "meta", "default");
           const metaSnap = await getDoc(metaRef);
           if (metaSnap.exists() && metaSnap.data().displayName){
             label = String(metaSnap.data().displayName);
           }
-        } catch {}
-
-        items.push({ value: email, label });
-      }
-
-      // ترتيب عربي
-      items.sort((a,b)=> collator.compare(a.label, b.label));
-
-      // تعبئة القائمة
-      teacherSelect.innerHTML = '<option value="">— اختر —</option>';
-      for (const it of items){
+        }catch{}
         const opt = document.createElement("option");
-        opt.value = it.value;
-        opt.textContent = it.label;
+        opt.value = email;
+        opt.textContent = label;
         teacherSelect.appendChild(opt);
       }
     }
 
-    // 2) عند اختيار معلّم: حمّل meta + الطلاب ثم جهّز الفصول
-    teacherSelect.addEventListener("change", async ()=>{
-      resetBelow("teacher");
-      const teacherEmail = teacherSelect.value;
-      if(!teacherEmail) return;
+    // تحميل meta + الطلاب حسب المعلّم
+    async function loadForTeacher(email){
+      CURRENT.teacherId = email;
+      CURRENT.categories = [];
+      CURRENT.students   = [];
 
-      CURRENT.teacherId = teacherEmail;
+      // 1) categories من meta/default إن وُجدت
+      try{
+        const mRef = doc(db, "teachers", email, "meta", "default");
+        const mSnap = await getDoc(mRef);
+        if (mSnap.exists() && Array.isArray(mSnap.data().categories)){
+          CURRENT.categories = mSnap.data().categories;
+        }
+      }catch{}
 
-      // meta/default --> categories
-      try {
-        const metaRef  = doc(db, "teachers", teacherEmail, "meta", "default");
-        const metaSnap = await getDoc(metaRef);
-        CURRENT.categories = (metaSnap.exists() && Array.isArray(metaSnap.data().categories))
-          ? metaSnap.data().categories
-          : [];
-      } catch {
-        CURRENT.categories = [];
+      // 2) الطلاب: بندر من المسار الجديد / أنت من المسار القديم (students)
+      if (email === YOU){
+        const qOld = query(collection(db, "students"), orderBy("Name"));
+        const sSnap = await getDocs(qOld);
+        sSnap.forEach(s => CURRENT.students.push({ id:s.id, ...s.data() }));
+      } else {
+        const qNew = query(collection(db, "teachers", email, "students"), orderBy("Name"));
+        const sSnap = await getDocs(qNew);
+        sSnap.forEach(s => CURRENT.students.push({ id:s.id, ...s.data() }));
       }
 
-      // students
-      const qStu = query(collection(db, "teachers", teacherEmail, "students"), orderBy("Name"));
-      const stuSnap = await getDocs(qStu);
-      CURRENT.students = stuSnap.docs.map(s => ({ id: s.id, ...s.data() }));
-
-      // استخرج الفصول المميّزة
-      const classes = [...new Set(CURRENT.students.map(s => String(s.Class || "غير محدد")))];
-      classes.sort(collator.compare);
-
+      // جهّز الفصول
+      const classes = [...new Set(CURRENT.students.map(s => (s.Class||"غير محدد")+""))]
+                        .sort(collator.compare);
       classSelect.innerHTML = '<option value="">— اختر —</option>';
-      classes.forEach(cls=>{
+      classes.forEach(c=>{
         const opt = document.createElement("option");
-        opt.value = cls; opt.textContent = cls;
+        opt.value = c; opt.textContent = c;
         classSelect.appendChild(opt);
       });
       classCard.style.display = "block";
-    });
+    }
 
-    // 3) عند اختيار فصل: أعرض أسماء الطلاب
-    classSelect.addEventListener("change", ()=>{
-      resetBelow("class");
-      const cls = classSelect.value;
-      if(!cls) return;
-
-      const list = CURRENT.students
-        .filter(s => String(s.Class || "غير محدد") === cls)
-        .sort((a,b)=> collator.compare(String(a.Name||""), String(b.Name||"")));
-
-      studentSelect.innerHTML = '<option value="">— اختر —</option>';
-      list.forEach(s=>{
-        const opt = document.createElement("option");
-        opt.value = s.id;
-        opt.textContent = s.Name || s.id;
-        studentSelect.appendChild(opt);
-      });
-      studentCard.style.display = "block";
-    });
-
-    // 4) عند اختيار الطالب: اعرض درجاته
-    studentSelect.addEventListener("change", ()=>{
-      gradesSection.style.display = "none";
-      const id = studentSelect.value;
-      if(!id) return;
-      const s = CURRENT.students.find(x=>x.id===id);
-      if(!s) return;
-      renderGrades(s);
-    });
-
+    // عرض درجات طالب
     function renderGrades(s){
-      studentHeader.textContent = `${s.Name || s.id} — ${s.Class || 'غير محدد'}`;
+      studentHeader.textContent = `${s.Name||s.id} — ${s.Class || 'غير محدد'}`;
       const noteText = s.Notes ? String(s.Notes) : "لا يوجد";
       studentNoteWrap.innerHTML = `<span class="badge">الملاحظة: ${noteText}</span>`;
 
-      // الأعمدة: من meta.categories + (Hw إن وُجد ولم يكن ضمنها)
-      const cols = Array.isArray(CURRENT.categories) ? [...CURRENT.categories] : [];
-      if (s.Hw !== undefined && !cols.includes("Hw")) cols.push("Hw");
+      // الأعمدة: من meta.categories + أي حقول درجات إضافية عند الطالب
+      // استثنِ حقول التعريف المعروفة
+      const baseKeys = new Set(CURRENT.categories);
+      const ignore = new Set(["id","Name","Class","Notes","Total"]);
+      Object.keys(s).forEach(k=>{
+        if (!ignore.has(k) && typeof s[k] === "number" && !baseKeys.has(k)) baseKeys.add(k);
+      });
 
+      const cols = Array.from(baseKeys);
       const table = document.createElement("table");
       const thead = document.createElement("thead");
       thead.innerHTML = "<tr><th>البند</th><th>الدرجة</th></tr>";
@@ -232,14 +205,12 @@
 
       const tbody = document.createElement("tbody");
       let total = 0;
-
       for(const key of cols){
         const val = Number(s[key] ?? 0);
         const tr  = document.createElement("tr");
         tr.innerHTML = `<td>${key}</td><td>${val}</td>`;
         tbody.appendChild(tr);
-
-        if(String(key).trim() !== "غياب") total += val; // الغياب لا يدخل
+        if (String(key).trim() !== "غياب") total += val; // الغياب لا يدخل
       }
 
       // صف الملاحظات
@@ -256,11 +227,43 @@
       gradesSection.style.display = "block";
     }
 
+    // أحداث الواجهه
+    teacherSelect.addEventListener("change", async ()=>{
+      resetBelow("teacher");
+      if (!teacherSelect.value) return;
+      await loadForTeacher(teacherSelect.value);
+    });
+
+    classSelect.addEventListener("change", ()=>{
+      resetBelow("class");
+      const cls = classSelect.value;
+      if(!cls) return;
+      const list = CURRENT.students
+        .filter(s => String(s.Class||"غير محدد") === cls)
+        .sort((a,b)=> collator.compare(a.Name||"", b.Name||""));
+      studentSelect.innerHTML = '<option value="">— اختر —</option>';
+      list.forEach(s=>{
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.Name || s.id;
+        studentSelect.appendChild(opt);
+      });
+      studentCard.style.display = "block";
+    });
+
+    studentSelect.addEventListener("change", ()=>{
+      gradesSection.style.display = "none";
+      const id = studentSelect.value;
+      if(!id) return;
+      const s = CURRENT.students.find(x=>x.id===id);
+      if (s) renderGrades(s);
+    });
+
     function resetBelow(level){
       if(level==="teacher"){
-        classSelect.innerHTML   = '<option value="">— اختر —</option>';
+        classSelect.innerHTML = '<option value="">— اختر —</option>';
         studentSelect.innerHTML = '<option value="">— اختر —</option>';
-        classCard.style.display   = "none";
+        classCard.style.display = "none";
         studentCard.style.display = "none";
         gradesSection.style.display = "none";
       }else if(level==="class"){
@@ -270,17 +273,19 @@
       }
     }
 
-    // تشغيل
-    await loadTeachers();
+    // بدء التشغيل
+    (async function init(){
+      await loadTeachers();
+      applyTheme(localStorage.getItem("theme")||"light");
+    })();
 
-    // تبديل الوضع الداكن
+    // تبديل الوضع
     const toggle=document.getElementById("toggleTheme");
     function applyTheme(t){
       document.documentElement.dataset.theme=t;
       localStorage.setItem("theme",t);
       toggle.textContent=t==="dark"?"الوضع الفاتح":"الوضع الداكن";
     }
-    applyTheme(localStorage.getItem("theme")||"light");
     toggle.onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
   </script>
 </body>
