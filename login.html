@@ -33,60 +33,26 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
   
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
-      authDomain: "students-portal-9eda8.firebaseapp.com",
-      projectId: "students-portal-9eda8",
-      storageBucket: "students-portal-9eda8.firebasestorage.app",
-      messagingSenderId: "279588301357",
-      appId: "1:279588301357:web:37f0ad440810aed4a166a4"
-    };
-  
+    const firebaseConfig = { /* نفس إعداداتك */ };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db   = getFirestore(app);
   
-    const $ = id => document.getElementById(id);
-    const msg = $("loginMsg");
+    const email = document.getElementById("email");
+    const pass  = document.getElementById("password");
+    const btn   = document.getElementById("loginBtn");
+    const msg   = document.getElementById("loginMsg");
   
-    $("loginBtn").onclick = async () => {
+    btn.onclick = async () => {
       msg.textContent = "";
       try {
-        const email = ($("email").value || "").trim().toLowerCase();
-        const pass  = $("password").value;
-  
-        // 1) تسجيل الدخول
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
-        const user = cred.user;
-  
-        // 2) نحاول نقرأ مستند users بالـ email أولاً
-        let snap = await getDoc(doc(db, "users", email));
-  
-        // 3) لو ما لقيناه، نجرب بالـ UID
-        if (!snap.exists()) {
-          snap = await getDoc(doc(db, "users", user.uid));
-        }
-  
-        if (!snap.exists()) {
-          alert("❌ حسابك غير مضاف في users. تواصل مع المشرف.");
-          return;
-        }
-  
-        const data = snap.data() || {};
-        const role = (data.role || "teacher").toLowerCase();
-  
-        // 4) توجيه
-        if (role === "admin") {
-          window.location.href = "admin-panel.html";
-        } else {
-          window.location.href = "teacher.html";
-        }
+        await signInWithEmailAndPassword(auth, email.value.trim(), pass.value);
+        // النجاح → راح تكمّل توجيهك حسب الدور…
+        window.location.href = "admin.html"; // أو teacher.html حسب سكربتك
       } catch (err) {
-        console.error("LOGIN ERROR:", err);
-        msg.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
+        console.error("LOGIN ERROR:", err.code, err.message);
+        // اعرض الرمز للمساعدة
+        msg.textContent = `❌ ${err.code}`;
       }
     };
   </script>
