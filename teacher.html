@@ -1,169 +1,328 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>لوحة المعلم</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>لوحة المعلّم</title>
   <style>
-    :root{--bg:#0b1220;--card:#101a2b;--ink:#e8f0ff;--muted:#9fb3d1;--accent:#4f8cff;--ok:#2ecc71;--line:#1a2945}
+    :root{--bg:#0b1220;--card:#101a2b;--ink:#e8f0ff;--muted:#9fb3d1;--accent:#4f8cff;--line:#1a2945}
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
     body{margin:0;background:var(--bg);color:var(--ink)}
-    header{padding:16px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
-    .btn{padding:10px 14px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);cursor:pointer}
+    header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between;background:#0d1728}
     .muted{color:var(--muted)}
-    main{max-width:1100px;margin:22px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
-    input,select{width:100%;padding:10px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
-    table{width:100%;border-collapse:collapse;min-width:900px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
-    td[contenteditable]{background:#0f1a2d;border:1px dashed #243756;border-radius:8px}
+    main{max-width:1100px;margin:18px auto;padding:0 14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,select,textarea{background:#0f1a2d;color:var(--ink);border:1px solid #23365b;border-radius:10px;padding:10px}
+    button{background:#13203a;color:var(--ink);border:1px solid #2a416e;border-radius:10px;padding:9px 12px;cursor:pointer}
+    button.primary{background:var(--accent);border-color:#3f70cc}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--line);padding:8px;text-align:center}
+    th{background:#0e1a30}
+    .pill{display:inline-flex;gap:8px;align-items:center;background:#0f1f38;border:1px solid #263a64;border-radius:999px;padding:6px 10px}
+    .pill input{background:transparent;border:none;padding:0;min-width:80px}
+    .danger{background:#3a0f18;border-color:#6e2632}
+    .ok{color:#8ad28a}
   </style>
 </head>
 <body>
 <header>
-  <div>
-    <strong>لوحة المعلم</strong>
-    <span class="muted" id="who" style="margin-inline-start:8px">—</span>
+  <div class="row">
+    <strong>لوحة المعلّم</strong>
+    <span id="who" class="muted">—</span>
   </div>
-  <div>
-    <a class="btn" href="login.html">تبديل مستخدم</a>
-    <button class="btn" id="logout">تسجيل الخروج</button>
+  <div class="row">
+    <a href="index.html"><button>بوابة الطلاب</button></a>
+    <button id="logout">تسجيل الخروج</button>
   </div>
 </header>
 
 <main>
+  <!-- إعدادات المعلّم -->
   <div class="card">
-    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
-      <select id="classSelect"></select>
-      <input id="search" placeholder="بحث بالاسم أو ID">
-      <button class="btn" id="refresh">تحديث</button>
-      <span class="muted">الدور: <b id="role">—</b></span>
+    <div class="row">
+      <div class="pill">
+        <span>الاسم الظاهر:</span>
+        <input id="displayName" placeholder="مثال: بندر المباركي" />
+        <button id="saveMeta">حفظ</button>
+        <span id="metaMsg" class="muted"></span>
+      </div>
+
+      <div class="pill" style="flex-wrap:wrap">
+        <span>البنود:</span>
+        <div id="catsWrap" class="row"></div>
+        <button id="addCat">+ إضافة بند</button>
+      </div>
+
+      <div class="pill">
+        <span>فلترة بالفصل:</span>
+        <select id="classFilter"><option value="">الكل</option></select>
+        <button id="refresh">تحديث</button>
+      </div>
     </div>
   </div>
 
-  <div class="card" style="overflow:auto">
-    <table>
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-    </table>
+  <!-- رفع الطلاب دفعة واحدة -->
+  <div class="card">
+    <h3 style="margin:0 0 8px">رفع الطلاب (نسخ/لصق من Excel)</h3>
+    <p class="muted">الصيغة: <code>ID,Name,Class</code> أو مفصولة بـ <code>Tab</code>. سطر لكل طالب.</p>
+    <textarea id="bulk" rows="6" style="width:100%;"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="parse" class="primary">استيراد</button>
+      <span id="bulkMsg" class="muted"></span>
+    </div>
+  </div>
+
+  <!-- جدول الطلاب -->
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h3 style="margin:0">الطلاب</h3>
+      <button id="addOne">+ إضافة طالب يدوي</button>
+    </div>
+    <div style="overflow:auto">
+      <table id="grid">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
 </main>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
+  // ==== إعدادات مشروعك ====
   const firebaseConfig = {
     apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
     authDomain: "students-portal-9eda8.firebaseapp.com",
     projectId: "students-portal-9eda8",
     storageBucket: "students-portal-9eda8.firebasestorage.app",
     messagingSenderId: "279588301357",
-    appId: "1:279588301357:web:37f0ad440810aed4a166a4",
-    measurementId: "G-7FW8J3J4GN"
+    appId: "1:279588301357:web:37f0ad440810aed4a166a4"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getFirestore(app);
 
-  const $ = id => document.getElementById(id);
-  const num = v => Number(v||0);
-  const total = s => num(s.Hw)+num(s.Classwork)+num(s.Activity)+num(s.Research)+num(s.Theoretical)+num(s.Practical);
+  // عناصر
+  const who = document.getElementById("who");
+  const logoutBtn = document.getElementById("logout");
+  const displayName = document.getElementById("displayName");
+  const saveMetaBtn = document.getElementById("saveMeta");
+  const metaMsg = document.getElementById("metaMsg");
+  const catsWrap = document.getElementById("catsWrap");
+  const classFilter = document.getElementById("classFilter");
+  const refreshBtn = document.getElementById("refresh");
+  const bulk = document.getElementById("bulk");
+  const parseBtn = document.getElementById("parse");
+  const bulkMsg = document.getElementById("bulkMsg");
+  const addOneBtn = document.getElementById("addOne");
+  const thead = document.getElementById("thead");
+  const tbody = document.getElementById("tbody");
 
-  let ALLOWED_CLASSES=[], CATS=["Hw","Classwork","Activity","Research","Theoretical","Practical"];
+  const collator = new Intl.Collator('ar');
+
+  let teacherId = null;       // بريد المعلّم (lowercase)
+  let categories = [];        // قائمة البنود
+  let students = [];          // كل الطلاب
+  let debouncers = new Map(); // لحفظ تلقائي مؤجل
 
   onAuthStateChanged(auth, async (user)=>{
     if(!user){ location.href="login.html"; return; }
-    $("who").textContent = user.email || "—";
+    teacherId = (user.email || "").toLowerCase();
+    who.textContent = user.email;
 
-    const uref = doc(db,"users",(user.email||"").toLowerCase());
-    const usnap = await getDoc(uref);
-    if(!usnap.exists()){
-      alert("حسابك غير مضاف في users. تواصل مع المشرف.");
-      location.href="login.html"; return;
-    }
-    const u = usnap.data();
-    $("role").textContent = u.role || "teacher";
-    if(u.role==="admin"){ location.href="admin.html"; return; }
-
-    ALLOWED_CLASSES = Array.isArray(u.classes)? u.classes.map(String): [];
-    if(Array.isArray(u.categories) && u.categories.length) CATS = u.categories;
-
-    // املأ قائمة الفصول
-    $("classSelect").innerHTML = ALLOWED_CLASSES.map(c=>`<option value="${c}">${c}</option>`).join("");
-    buildHead();
-    load();
+    await ensureMetaDoc();      // يتأكد يوجد meta/default
+    await loadMeta();           // يقرأ البنود واسم العرض
+    await loadStudents();       // يقرأ الطلاب
+    renderAll();                // يرسم الواجهة
   });
 
-  $("logout").onclick = ()=> signOut(auth);
-  $("refresh").onclick = ()=> load();
-  $("classSelect").addEventListener("change", ()=> load());
-  $("search").addEventListener("input", ()=> load());
+  logoutBtn.onclick = ()=> signOut(auth);
 
-  function buildHead(){
-    const catHeads = CATS.map(c=>`<th>${c}</th>`).join("");
-    $("thead").innerHTML = `
-      <tr>
-        <th>ID</th><th>الاسم</th><th>الفصل</th>
-        ${catHeads}
-        <th>Absence</th><th>Total</th><th>حفظ</th>
-      </tr>
-    `;
+  async function ensureMetaDoc(){
+    const ref = doc(db, "teachers", teacherId, "meta", "default");
+    const snap = await getDoc(ref);
+    if(!snap.exists()){
+      await setDoc(ref, { displayName: teacherId, categories: ["Hw","نشاط","مشروع","نظري","عملي","غياب"] });
+    }
   }
 
-  async function load(){
-    const klass = $("classSelect").value;
-    if(!klass){ $("tbody").innerHTML = ""; return; }
+  async function loadMeta(){
+    const ref = doc(db, "teachers", teacherId, "meta", "default");
+    const snap = await getDoc(ref);
+    const data = snap.data() || {};
+    categories = Array.isArray(data.categories) ? data.categories : [];
+    displayName.value = data.displayName || teacherId;
+  }
 
-    const qy = query(collection(db,"students"), where("Class","==",klass));
+  async function loadStudents(){
+    const qy = query(collection(db, "teachers", teacherId, "students"), orderBy("Name"));
     const qs = await getDocs(qy);
-    const term = ($("search").value||"").toLowerCase().trim();
-
-    const rows=[];
-    qs.forEach(d=>{
-      const s=d.data(); s.id=d.id;
-      if(term && !(String(s.id).toLowerCase().includes(term) || (s.Name||"").toLowerCase().includes(term))) return;
-      const catTds = CATS.map(c=>{
-        const val = num(s[c]);
-        return `<td contenteditable data-field="${c}" data-id="${s.id}">${val}</td>`;
-      }).join("");
-      rows.push(`
-        <tr data-id="${s.id}">
-          <td>${s.id}</td>
-          <td>${s.Name||""}</td>
-          <td>${s.Class||""}</td>
-          ${catTds}
-          <td contenteditable data-field="Absence" data-id="${s.id}">${num(s.Absence)}</td>
-          <td><b>${num(s.Total||total(s))}</b></td>
-          <td><button class="btn" data-save="${s.id}">حفظ</button></td>
-        </tr>
-      `);
-    });
-    $("tbody").innerHTML = rows.join("") || `<tr><td colspan="${6+CATS.length}" class="muted">لا يوجد طلاب</td></tr>`;
-
-    // ربط الحفظ
-    document.querySelectorAll("[data-save]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const id = btn.getAttribute("data-save");
-        const tr = document.querySelector(`tr[data-id="${id}"]`);
-        const payload = {};
-        CATS.forEach(c=>{
-          const td = tr.querySelector(`td[data-field="${c}"]`);
-          payload[c] = num(td.textContent);
-        });
-        const ab = tr.querySelector(`td[data-field="Absence"]`);
-        payload.Absence = num(ab.textContent);
-        payload.Total = CATS.reduce((acc,c)=> acc + num(payload[c]??0), 0);
-
-        await setDoc(doc(db,"students",id), payload, {merge:true});
-        tr.style.outline="2px solid var(--ok)"; setTimeout(()=> tr.style.outline="none",600);
-        // حدّث قيمة التوتال في الخلية
-        tr.querySelector("td:nth-last-child(2)").innerHTML = `<b>${payload.Total}</b>`;
-      };
-    });
+    students = [];
+    qs.forEach(d => students.push({ id:d.id, ...d.data() }));
+    // عَبّي قائمة الفصول
+    const classes = [...new Set(students.map(s => String(s.Class||"غير محدد"))) ].sort(collator.compare);
+    classFilter.innerHTML = `<option value="">الكل</option>` + classes.map(c=>`<option value="${c}">${c}</option>`).join("");
   }
+
+  function renderAll(){
+    // البنود
+    catsWrap.innerHTML = "";
+    categories.forEach((c,idx)=>{
+      const pill = document.createElement("div");
+      pill.className = "pill";
+      pill.innerHTML = `
+        <span>${idx+1}</span>
+        <input value="${c}" data-idx="${idx}" />
+        <button class="danger" data-del="${idx}">حذف</button>
+      `;
+      catsWrap.appendChild(pill);
+    });
+
+    // رأس الجدول
+    const cols = ["ID","الاسم","الفصل", ...categories];
+    thead.innerHTML = "<tr>"+cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
+
+    // جسم الجدول
+    renderRows();
+  }
+
+  function renderRows(){
+    const cls = classFilter.value;
+    const list = students
+      .filter(s => !cls || String(s.Class||"")===cls)
+      .sort((a,b)=> collator.compare(a.Name||"", b.Name||""));
+
+    tbody.innerHTML = "";
+    for(const s of list){
+      const tr = document.createElement("tr");
+      // خلايا ثابتة
+      tr.appendChild(tdText(s.id));
+      tr.appendChild(tdInputText(s.id,"Name", s.Name||""));
+      tr.appendChild(tdInputText(s.id,"Class", s.Class||""));
+
+      // خلايا البنود
+      for(const key of categories){
+        tr.appendChild(tdInputNumber(s.id, key, Number(s[key]||0)));
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  function tdText(text){
+    const td = document.createElement("td");
+    td.textContent = text;
+    return td;
+  }
+  function tdInputText(id, field, value){
+    const td = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.value = value; inp.style.minWidth="120px";
+    inp.oninput = ()=> saveField(id, field, inp.value);
+    td.appendChild(inp);
+    return td;
+  }
+  function tdInputNumber(id, field, value){
+    const td = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type="number"; inp.step="1"; inp.value = isFinite(value)? value : 0; inp.style.width="90px";
+    inp.oninput = ()=> saveField(id, field, Number(inp.value||0));
+    td.appendChild(inp);
+    return td;
+  }
+
+  // حفظ بحجز (debounce) لتقليل الكتابات
+  function saveField(id, field, value){
+    const key = id+"::"+field;
+    clearTimeout(debouncers.get(key));
+    debouncers.set(key, setTimeout(async ()=>{
+      const ref = doc(db, "teachers", teacherId, "students", id);
+      await setDoc(ref, { [field]: value }, { merge:true });
+      // حدث نسخة الذاكرة
+      const s = students.find(x=>x.id===id);
+      if(s) s[field] = value;
+    }, 400));
+  }
+
+  // حفظ meta (اسم العرض + البنود)
+  saveMetaBtn.onclick = async ()=>{
+    // اجمع البنود من الواجهة
+    const inputs = catsWrap.querySelectorAll('input[data-idx]');
+    const arr = [...inputs].map(i => i.value.trim()).filter(Boolean);
+    categories = arr;
+    // اكتب meta
+    await setDoc(doc(db,"teachers",teacherId,"meta","default"), {
+      displayName: displayName.value.trim() || teacherId,
+      categories
+    }, { merge:true });
+    metaMsg.textContent = "✓ تم الحفظ";
+    setTimeout(()=> metaMsg.textContent="", 1500);
+    // أعد رسم الجدول بالأعمدة الجديدة
+    renderAll();
+  };
+
+  // إضافة بند جديد
+  document.getElementById("addCat").onclick = ()=>{
+    categories.push("بند جديد");
+    renderAll();
+  };
+
+  // حذف بند
+  catsWrap.addEventListener("click", (e)=>{
+    const idx = e.target.getAttribute("data-del");
+    if(idx==null) return;
+    categories.splice(Number(idx),1);
+    renderAll();
+  });
+
+  // فلترة وتحديث
+  classFilter.onchange = renderRows;
+  refreshBtn.onclick = async ()=> { await loadStudents(); renderAll(); };
+
+  // استيراد دفعة واحدة
+  parseBtn.onclick = async ()=>{
+    const text = bulk.value.trim();
+    if(!text){ bulkMsg.textContent = "لا يوجد بيانات."; return; }
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    let ok=0, bad=0;
+    for(const ln of lines){
+      // يدعم , أو tab
+      const parts = ln.split(/\t|,/).map(s=>s.trim());
+      if(parts.length < 3){ bad++; continue; }
+      const [idRaw, name, cls] = parts;
+      const id = idRaw.replace(/\s+/g,""); // نظّف
+      if(!id){ bad++; continue; }
+
+      // جهّز قيم مبدئية للبنود
+      const base = { Name: name, Class: cls };
+      for(const k of categories) base[k] = Number(base[k]||0);
+      // اكتب
+      await setDoc(doc(db,"teachers",teacherId,"students", id), base, { merge:true });
+      ok++;
+    }
+    bulkMsg.innerHTML = `تم استيراد <b class="ok">${ok}</b> سطر${ok!==1?"اً":""}، ورفض ${bad}.`;
+    await loadStudents();
+    renderAll();
+  };
+
+  // إضافة طالب يدوي
+  addOneBtn.onclick = async ()=>{
+    const id = prompt("أدخل رقم/هوية الطالب (ID):");
+    if(!id) return;
+    const name = prompt("اسم الطالب:");
+    const cls  = prompt("الفصل (مثال 304):");
+    const base = { Name:name||"", Class:cls||"" };
+    for(const k of categories) base[k]=0;
+    await setDoc(doc(db,"teachers",teacherId,"students", String(id).trim()), base, { merge:true });
+    await loadStudents();
+    renderAll();
+  };
 </script>
 </body>
 </html>
