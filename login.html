@@ -32,10 +32,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-    // إعدادات Firebase
+  
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -44,66 +43,42 @@
       messagingSenderId: "279588301357",
       appId: "1:279588301357:web:37f0ad440810aed4a166a4"
     };
-
+  
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
-
-    const $ = (id)=>document.getElementById(id);
-    const msgEl = $("loginMsg");
-
-    // لو المستخدم مسجّل من قبل
-    onAuthStateChanged(auth, async (user)=>{
-      if(!user) return;
-      try{
-        const email = (user.email||"").toLowerCase();
-        const snap  = await getDoc(doc(db, "users", email));
-        if(!snap.exists()){
-          msgEl.textContent = "لا يوجد صلاحية لهذا المستخدم.";
+  
+    const emailInput = document.getElementById("email");
+    const passInput  = document.getElementById("password");
+    const btn        = document.getElementById("loginBtn");
+    const msg        = document.getElementById("loginMsg");
+  
+    btn.onclick = async () => {
+      msg.textContent = "";
+      try {
+        const cred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
+  
+        // ✅ نقرأ وثيقة المستخدم بالـ "email" (نفس ما خزّناه في Firestore)
+        const emailKey = (cred.user.email || "").toLowerCase();
+        const ref  = doc(db, "users", emailKey);
+        const snap = await getDoc(ref);
+  
+        if (!snap.exists()) {
+          msg.textContent = "❌ لا يوجد صلاحية لهذا المستخدم.";
           return;
         }
-        const role = snap.data().role || "teacher";
+  
+        const role = (snap.data().role || "teacher").toLowerCase();
         if (role === "admin") {
           location.href = "admin-panel.html";
         } else {
           location.href = "teacher.html";
         }
-      }catch(e){
+      } catch (e) {
         console.error(e);
-        msgEl.textContent = "تعذر تحديد الصلاحية.";
-      }
-    });
-
-    $("loginBtn").onclick = async ()=>{
-      msgEl.textContent = "";
-      const email = $("email").value.trim();
-      const pass  = $("password").value.trim();
-      if(!email || !pass){
-        msgEl.textContent = "أدخل البريد وكلمة المرور.";
-        return;
-      }
-      try{
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
-        const userEmail = (cred.user.email||"").toLowerCase();
-        const uref = doc(db, "users", userEmail);
-        const usnap = await getDoc(uref);
-
-        if (!usnap.exists()) {
-          msgEl.textContent = "❌ لا يوجد صلاحية لهذا المستخدم.";
-          return;
-        }
-
-        const role = usnap.data().role || "teacher";
-        if (role === "admin") {
-          window.location.href = "admin-panel.html";   // ✅ التحويل للوحة المشرف الجديدة
-        } else {
-          window.location.href = "teacher.html";
-        }
-      }catch(err){
-        console.error(err);
-        msgEl.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
+        msg.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
       }
     };
-  </script>
+  </script>  
 </body>
 </html>
