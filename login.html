@@ -35,7 +35,7 @@
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
   
-    // إعدادات Firebase
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -47,48 +47,49 @@
   
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const db   = getFirestore(app);
   
-    const emailInput = document.getElementById("email");
-    const passInput = document.getElementById("password");
-    const btn = document.getElementById("loginBtn");
-    const msg = document.getElementById("loginMsg");
+    const $ = id => document.getElementById(id);
+    const msg = $("loginMsg");
   
-    btn.onclick = async () => {
+    $("loginBtn").onclick = async () => {
       msg.textContent = "";
       try {
-        // 🔹 تسجيل الدخول بالبريد وكلمة المرور
-        const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-        const user = userCred.user;
+        const email = ($("email").value || "").trim().toLowerCase();
+        const pass  = $("password").value;
   
-        // 🔹 قراءة الدور من users (بناءً على البريد كاسم المستند)
-        const emailKey = (emailInput.value || "").toLowerCase();
-        const ref = doc(db, "users", emailKey);
-        const snap = await getDoc(ref);
+        // 1) تسجيل الدخول
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const user = cred.user;
+  
+        // 2) نحاول نقرأ مستند users بالـ email أولاً
+        let snap = await getDoc(doc(db, "users", email));
+  
+        // 3) لو ما لقيناه، نجرب بالـ UID
+        if (!snap.exists()) {
+          snap = await getDoc(doc(db, "users", user.uid));
+        }
   
         if (!snap.exists()) {
           alert("❌ حسابك غير مضاف في users. تواصل مع المشرف.");
           return;
         }
   
-        const role = snap.data().role || "teacher";
+        const data = snap.data() || {};
+        const role = (data.role || "teacher").toLowerCase();
   
-        // 🔹 توجيه حسب الدور
+        // 4) توجيه
         if (role === "admin") {
           window.location.href = "admin.html";
-        } else if (role === "teacher") {
-          window.location.href = "teacher.html";
         } else {
-          alert("⚠️ نوع الحساب غير معروف، راجع المشرف.");
+          window.location.href = "teacher.html";
         }
-  
       } catch (err) {
-        console.error("LOGIN ERROR:", err.code, err.message);
+        console.error("LOGIN ERROR:", err);
         msg.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
       }
     };
   </script>
-  
   
   
   
