@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>نقل الطلاب لمجلد المعلّم</title>
+<style>
+  body{font-family:system-ui;max-width:800px;margin:24px auto;padding:16px}
+  button{padding:10px 14px;border-radius:10px;border:1px solid #ccd;background:#eef;cursor:pointer}
+  pre{background:#f7f7f7;border:1px solid #eee;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
+</style>
+<h2>نقل الطلاب من /students إلى /teachers/{email}/students</h2>
+<p>هذا سكربت مرّة واحدة. يقسم بحسب فصول المعلم الموجودة في <code>users/{email}.allowedClasses</code>.</p>
+
+<div>
+  <label>إيميل المعلّم:</label>
+  <input id="teacherEmail" placeholder="example@school.com" style="padding:8px;border-radius:8px;border:1px solid #ccd;width:320px">
+  <button id="dry">محاكاة (بدون كتابة)</button>
+  <button id="run">نقل الآن</button>
+</div>
+
+<pre id="log"></pre>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
+  authDomain: "students-portal-9eda8.firebaseapp.com",
+  projectId: "students-portal-9eda8",
+  storageBucket: "students-portal-9eda8.firebasestorage.app",
+  messagingSenderId: "279588301357",
+  appId: "1:279588301357:web:37f0ad440810aed4a166a4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+const log = (t)=> { $.log.textContent += t + "\n"; };
+
+async function getAllowedClasses(email){
+  // users/{email}.allowedClasses  (لو ما كانت موجودة، يرجّع null)
+  const usersSnap = await getDocs(query(collection(db, "users")));
+  let found = null;
+  usersSnap.forEach(d=>{
+    if (d.id.toLowerCase() === email.toLowerCase()) {
+      const a = d.data().allowedClasses;
+      if (Array.isArray(a) && a.length) found = a.map(String);
+    }
+  });
+  return found;
+}
+
+async function gatherStudentsByClasses(classes){
+  // نقرأ كل الطلاب من /students ونفلتر حسب الكلاسات المطلوبة
+  const allSnap = await getDocs(collection(db, "students"));
+  const list = [];
+  allSnap.forEach(s=>{
+    const d = s.data();
+    const cls = String(d.Class || "");
+    if (!classes || classes.includes(cls)) list.push({ id: s.id, ...d });
+  });
+  return list;
+}
+
+async function migrate(email, dryRun=false){
+  $.log.textContent = "";
+  email = email.trim().toLowerCase();
+  if(!email){ log("❌ أدخل إيميل المعلم أولاً"); return; }
+
+  const allowed = await getAllowedClasses(email);
+  log(`المعلم: ${email}`);
+  log(`الفصول المعتمدة: ${allowed ? allowed.join(", ") : "(غير محددة - سيتم نقل الكل)"}`);
+
+  const students = await gatherStudentsByClasses(allowed);
+  log(`عدد الطلاب المراد نقلهم: ${students.length}`);
+
+  if (dryRun){ log("✅ محاكاة فقط. لا يوجد كتابة."); return; }
+
+  // نكتب على دفعات (حد فايرستور 500 لكل batch)
+  let batch = writeBatch(db);
+  let count = 0, batches = 1;
+
+  for (const s of students){
+    const ref = doc(db, "teachers", email, "students", s.id);
+    batch.set(ref, s, { merge: true });
+    count++;
+    if (count % 450 === 0) { // مسافة أمان تحت 500
+      await batch.commit();
+      log(`✔️ تم تنفيذ الدفعة #${batches} (${count} سجل)`);
+      batch = writeBatch(db);
+      batches++;
+    }
+  }
+  await batch.commit();
+  log(`🎉 اكتمل النقل. إجمالي: ${count} طالب/سجل في ${batches} دفعات.`);
+}
+
+$.dry.onclick = ()=> migrate($.teacherEmail.value, true);
+$.run.onclick = ()=> migrate($.teacherEmail.value, false);
+</script>
