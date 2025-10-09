@@ -32,9 +32,10 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
   
+    // إعدادات Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
       authDomain: "students-portal-9eda8.firebaseapp.com",
@@ -46,36 +47,43 @@
   
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db   = getFirestore(app);
+    const db = getFirestore(app);
   
     const emailInput = document.getElementById("email");
-    const passInput  = document.getElementById("password");
-    const btn        = document.getElementById("loginBtn");
-    const msg        = document.getElementById("loginMsg");
+    const passInput = document.getElementById("password");
+    const btn = document.getElementById("loginBtn");
+    const msg = document.getElementById("loginMsg");
   
     btn.onclick = async () => {
       msg.textContent = "";
       try {
-        const cred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-        const { uid, email } = cred.user;
+        // 🔹 تسجيل الدخول بالبريد وكلمة المرور
+        const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
+        const user = userCred.user;
   
-        const keyEmail = (email || "").toLowerCase().trim();
-        let snap = await getDoc(doc(db, "users", keyEmail));
-        if (!snap.exists()) {
-          snap = await getDoc(doc(db, "users", uid));
-        }
+        // 🔹 قراءة الدور من users (بناءً على البريد كاسم المستند)
+        const emailKey = (emailInput.value || "").toLowerCase();
+        const ref = doc(db, "users", emailKey);
+        const snap = await getDoc(ref);
   
         if (!snap.exists()) {
-          alert("حسابك غير مضاف في users. تواصل مع المشرف.");
-          await signOut(auth);
+          alert("❌ حسابك غير مضاف في users. تواصل مع المشرف.");
           return;
         }
   
-        const role = (snap.data().role || "teacher").toLowerCase();
-        if (role === "admin") location.href = "admin-panel.html";
-        else location.href = "teacher.html";
-      } catch (e) {
-        console.error(e);
+        const role = snap.data().role || "teacher";
+  
+        // 🔹 توجيه حسب الدور
+        if (role === "admin") {
+          window.location.href = "admin.html";
+        } else if (role === "teacher") {
+          window.location.href = "teacher.html";
+        } else {
+          alert("⚠️ نوع الحساب غير معروف، راجع المشرف.");
+        }
+  
+      } catch (err) {
+        console.error("LOGIN ERROR:", err.code, err.message);
         msg.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
       }
     };
