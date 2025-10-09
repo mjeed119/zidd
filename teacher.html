@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>لوحة المعلم</title>
+  <style>
+    :root{--bg:#0b1220;--card:#101a2b;--ink:#e8f0ff;--muted:#9fb3d1;--accent:#4f8cff;--ok:#2ecc71;--line:#1a2945}
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Arial}
+    body{margin:0;background:var(--bg);color:var(--ink)}
+    header{padding:16px;background:#0d1728;border-bottom:1px solid #1b2a44;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink);cursor:pointer}
+    .muted{color:var(--muted)}
+    main{max-width:1100px;margin:22px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+    input,select{width:100%;padding:10px;border-radius:12px;border:1px solid #243756;background:#0f1a2d;color:var(--ink)}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+    td[contenteditable]{background:#0f1a2d;border:1px dashed #243756;border-radius:8px}
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <strong>لوحة المعلم</strong>
+    <span class="muted" id="who" style="margin-inline-start:8px">—</span>
+  </div>
+  <div>
+    <a class="btn" href="login.html">تبديل مستخدم</a>
+    <button class="btn" id="logout">تسجيل الخروج</button>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+      <select id="classSelect"></select>
+      <input id="search" placeholder="بحث بالاسم أو ID">
+      <button class="btn" id="refresh">تحديث</button>
+      <span class="muted">الدور: <b id="role">—</b></span>
+    </div>
+  </div>
+
+  <div class="card" style="overflow:auto">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
+    authDomain: "students-portal-9eda8.firebaseapp.com",
+    projectId: "students-portal-9eda8",
+    storageBucket: "students-portal-9eda8.firebasestorage.app",
+    messagingSenderId: "279588301357",
+    appId: "1:279588301357:web:37f0ad440810aed4a166a4",
+    measurementId: "G-7FW8J3J4GN"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  const $ = id => document.getElementById(id);
+  const num = v => Number(v||0);
+  const total = s => num(s.Hw)+num(s.Classwork)+num(s.Activity)+num(s.Research)+num(s.Theoretical)+num(s.Practical);
+
+  let ALLOWED_CLASSES=[], CATS=["Hw","Classwork","Activity","Research","Theoretical","Practical"];
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){ location.href="login.html"; return; }
+    $("who").textContent = user.email || "—";
+
+    const uref = doc(db,"users",(user.email||"").toLowerCase());
+    const usnap = await getDoc(uref);
+    if(!usnap.exists()){
+      alert("حسابك غير مضاف في users. تواصل مع المشرف.");
+      location.href="login.html"; return;
+    }
+    const u = usnap.data();
+    $("role").textContent = u.role || "teacher";
+    if(u.role==="admin"){ location.href="admin.html"; return; }
+
+    ALLOWED_CLASSES = Array.isArray(u.classes)? u.classes.map(String): [];
+    if(Array.isArray(u.categories) && u.categories.length) CATS = u.categories;
+
+    // املأ قائمة الفصول
+    $("classSelect").innerHTML = ALLOWED_CLASSES.map(c=>`<option value="${c}">${c}</option>`).join("");
+    buildHead();
+    load();
+  });
+
+  $("logout").onclick = ()=> signOut(auth);
+  $("refresh").onclick = ()=> load();
+  $("classSelect").addEventListener("change", ()=> load());
+  $("search").addEventListener("input", ()=> load());
+
+  function buildHead(){
+    const catHeads = CATS.map(c=>`<th>${c}</th>`).join("");
+    $("thead").innerHTML = `
+      <tr>
+        <th>ID</th><th>الاسم</th><th>الفصل</th>
+        ${catHeads}
+        <th>Absence</th><th>Total</th><th>حفظ</th>
+      </tr>
+    `;
+  }
+
+  async function load(){
+    const klass = $("classSelect").value;
+    if(!klass){ $("tbody").innerHTML = ""; return; }
+
+    const qy = query(collection(db,"students"), where("Class","==",klass));
+    const qs = await getDocs(qy);
+    const term = ($("search").value||"").toLowerCase().trim();
+
+    const rows=[];
+    qs.forEach(d=>{
+      const s=d.data(); s.id=d.id;
+      if(term && !(String(s.id).toLowerCase().includes(term) || (s.Name||"").toLowerCase().includes(term))) return;
+      const catTds = CATS.map(c=>{
+        const val = num(s[c]);
+        return `<td contenteditable data-field="${c}" data-id="${s.id}">${val}</td>`;
+      }).join("");
+      rows.push(`
+        <tr data-id="${s.id}">
+          <td>${s.id}</td>
+          <td>${s.Name||""}</td>
+          <td>${s.Class||""}</td>
+          ${catTds}
+          <td contenteditable data-field="Absence" data-id="${s.id}">${num(s.Absence)}</td>
+          <td><b>${num(s.Total||total(s))}</b></td>
+          <td><button class="btn" data-save="${s.id}">حفظ</button></td>
+        </tr>
+      `);
+    });
+    $("tbody").innerHTML = rows.join("") || `<tr><td colspan="${6+CATS.length}" class="muted">لا يوجد طلاب</td></tr>`;
+
+    // ربط الحفظ
+    document.querySelectorAll("[data-save]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-save");
+        const tr = document.querySelector(`tr[data-id="${id}"]`);
+        const payload = {};
+        CATS.forEach(c=>{
+          const td = tr.querySelector(`td[data-field="${c}"]`);
+          payload[c] = num(td.textContent);
+        });
+        const ab = tr.querySelector(`td[data-field="Absence"]`);
+        payload.Absence = num(ab.textContent);
+        payload.Total = CATS.reduce((acc,c)=> acc + num(payload[c]??0), 0);
+
+        await setDoc(doc(db,"students",id), payload, {merge:true});
+        tr.style.outline="2px solid var(--ok)"; setTimeout(()=> tr.style.outline="none",600);
+        // حدّث قيمة التوتال في الخلية
+        tr.querySelector("td:nth-last-child(2)").innerHTML = `<b>${payload.Total}</b>`;
+      };
+    });
+  }
+</script>
+</body>
+</html>
