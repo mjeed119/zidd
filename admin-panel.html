@@ -58,76 +58,101 @@
 </main>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-  // ضع إعداداتك هنا (نفسها اللي نسختها)
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
-    authDomain: "students-portal-9eda8.firebaseapp.com",
-    projectId: "students-portal-9eda8",
-    storageBucket: "students-portal-9eda8.firebasestorage.app",
-    messagingSenderId: "279588301357",
-    appId: "1:279588301357:web:37f0ad440810aed4a166a4",
-    measurementId: "G-7FW8J3J4GN"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-
-  const $ = id => document.getElementById(id);
-  const num = v => Number(v||0);
-  const total = s => num(s.Hw)+num(s.Classwork)+num(s.Activity)+num(s.Research)+num(s.Theoretical)+num(s.Practical);
-
-  onAuthStateChanged(auth, async (user)=>{
-    if(!user){ location.href="login.html"; return; }
-    $("who").textContent = user.email || "—";
-    // تحقق الدور
-    const uref = doc(db,"users", (user.email||"").toLowerCase());
-    const usnap = await getDoc(uref);
-    const role = usnap.exists() ? (usnap.data().role||"") : "";
-    $("role").textContent = role || "—";
-    if(role!=="admin"){ location.href="teacher.html"; return; }
-    load();
-  });
-
-  $("logout").onclick = ()=> signOut(auth);
-
-  $("refresh").onclick = ()=> load();
-  $("filterClass").addEventListener("input", ()=> load());
-  $("search").addEventListener("input", ()=> load());
-
-  async function load(){
-    const cls = $("filterClass").value.trim();
-    const qBase = collection(db,"students");
-    const qy   = cls ? query(qBase, where("Class","==",cls)) : qBase;
-    const qs   = await getDocs(qy);
-
-    const search = ($("search").value||"").toLowerCase().trim();
-    const rows=[];
-    qs.forEach(d=>{
-      const s = d.data(); s.id=d.id;
-      if(search && !(String(s.id).toLowerCase().includes(search) || (s.Name||"").toLowerCase().includes(search))) return;
-      rows.push(`
-        <tr>
-          <td>${s.id}</td>
-          <td>${s.Name||""}</td>
-          <td>${s.Class||""}</td>
-          <td>${num(s.Hw)}</td>
-          <td>${num(s.Classwork)}</td>
-          <td>${num(s.Activity)}</td>
-          <td>${num(s.Research)}</td>
-          <td>${num(s.Theoretical)}</td>
-          <td>${num(s.Practical)}</td>
-          <td>${num(s.Absence)}</td>
-          <td><b>${num(s.Total||total(s))}</b></td>
-        </tr>
-      `);
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0X_pv6FEzGw70YdDHNj0u6D9YoQ_Ib5o",
+      authDomain: "students-portal-9eda8.firebaseapp.com",
+      projectId: "students-portal-9eda8",
+      storageBucket: "students-portal-9eda8.firebasestorage.app",
+      messagingSenderId: "279588301357",
+      appId: "1:279588301357:web:37f0ad440810aed4a166a4"
+    };
+  
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+  
+    const $ = id => document.getElementById(id);
+    const num = v => Number(v||0);
+    const total = s => num(s.Hw)+num(s.Classwork)+num(s.Activity)+num(s.Research)+num(s.Theoretical)+num(s.Practical);
+  
+    async function fetchUserDoc(uid, email){
+      const emailKey = (email||"").trim().toLowerCase();
+      if (emailKey){
+        const byEmail = await getDoc(doc(db,"users", emailKey));
+        if (byEmail.exists()) return byEmail.data();
+      }
+      if (uid){
+        const byUid = await getDoc(doc(db,"users", uid));
+        if (byUid.exists()) return byUid.data();
+      }
+      return null;
+    }
+  
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){ location.href="login.html"; return; }
+      $("who").textContent = user.email || "—";
+  
+      try{
+        const u = await fetchUserDoc(user.uid, user.email);
+        if(!u){ alert("حسابك غير مضاف في users. تواصل مع المشرف."); await signOut(auth); location.href="login.html"; return; }
+  
+        $("role").textContent = u.role || "—";
+        if ((u.role||"").toLowerCase() !== "admin"){
+          alert("هذا الحساب ليس مديرًا. سيتم تحويلك لصفحة المعلم.");
+          location.href = "teacher.html";
+          return;
+        }
+  
+        // إذا وصلنا هنا، أنت Admin — حمّل البيانات
+        load();
+      }catch(e){
+        console.error(e);
+        alert("تعذر التحقق من الصلاحية. حاول مجددًا.");
+        await signOut(auth);
+        location.href="login.html";
+      }
     });
-    $("rows").innerHTML = rows.join("") || `<tr><td colspan="11" class="muted">لا يوجد بيانات</td></tr>`;
-  }
-</script>
+  
+    $("logout").onclick = ()=> signOut(auth);
+  
+    $("refresh").onclick = ()=> load();
+    $("filterClass").addEventListener("input", ()=> load());
+    $("search").addEventListener("input", ()=> load());
+  
+    async function load(){
+      const cls = $("filterClass").value.trim();
+      const qBase = collection(db,"students");
+      const qy   = cls ? query(qBase, where("Class","==",cls)) : qBase;
+      const qs   = await getDocs(qy);
+  
+      const search = ($("search").value||"").toLowerCase().trim();
+      const rows=[];
+      qs.forEach(d=>{
+        const s = d.data(); s.id=d.id;
+        if(search && !(String(s.id).toLowerCase().includes(search) || (s.Name||"").toLowerCase().includes(search))) return;
+        rows.push(`
+          <tr>
+            <td>${s.id}</td>
+            <td>${s.Name||""}</td>
+            <td>${s.Class||""}</td>
+            <td>${num(s.Hw)}</td>
+            <td>${num(s.Classwork)}</td>
+            <td>${num(s.Activity)}</td>
+            <td>${num(s.Research)}</td>
+            <td>${num(s.Theoretical)}</td>
+            <td>${num(s.Practical)}</td>
+            <td>${num(s.Absence)}</td>
+            <td><b>${num(s.Total||total(s))}</b></td>
+          </tr>
+        `);
+      });
+      $("rows").innerHTML = rows.join("") || `<tr><td colspan="11" class="muted">لا يوجد بيانات</td></tr>`;
+    }
+  </script>
+  
 </body>
 </html>
