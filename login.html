@@ -59,8 +59,7 @@
         const cred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
         const { uid, email } = cred.user;
   
-        // جرّب نجيب المستند بالبريد أولاً، ثم بالـ UID احتياطاً
-        const keyEmail = (email || "").toLowerCase();
+        const keyEmail = (email || "").toLowerCase().trim();
         let snap = await getDoc(doc(db, "users", keyEmail));
         if (!snap.exists()) {
           snap = await getDoc(doc(db, "users", uid));
@@ -73,17 +72,15 @@
         }
   
         const role = (snap.data().role || "teacher").toLowerCase();
-        if (role === "admin") {
-          location.href = "admin-panel.html";
-        } else {
-          location.href = "teacher.html";
-        }
+        if (role === "admin") location.href = "admin-panel.html";
+        else location.href = "teacher.html";
       } catch (e) {
         console.error(e);
         msg.textContent = "❌ خطأ في تسجيل الدخول، تحقق من البريد أو كلمة المرور.";
       }
     };
   </script>
+  
   
   
 </body>
